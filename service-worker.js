@@ -1,4 +1,4 @@
-const CACHE = 'hour-logger-v11';
+const CACHE = 'hour-logger-v12';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'
 ];
