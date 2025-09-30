@@ -558,7 +558,7 @@
       const now = fromDateStr(ds);
       const m = sumMonth(now);
       const overall = totalOvertimeAll();
-      compInfo.innerHTML = \`Overtime balance — <strong>Month:</strong> \${(m.ot/60).toFixed(2)} h, <strong>All-time:</strong> \${(overall/60).toFixed(2)} h\;
+      compInfo.innerHTML = \`Overtime balance — <strong>Month:</strong> \${(m.ot/60).toFixed(2)} h, <strong>All-time:</strong> \${(overall/60).toFixed(2)} h\`;
     }
 
     document.getElementById('compDate').addEventListener('change', updateCompInfo);
