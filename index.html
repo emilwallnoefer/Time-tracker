@@ -266,24 +266,26 @@
     // - If holiday => 0
     // - If no work logged => 0 (explicitly requested)
     // - Else => (work + comp - TARGET)  (can be + or -)
-    function dayBankDelta(ds){
-      if (isHoliday(ds)) return 0;
-      const w = workMins(ds); const c = compMins(ds);
-      const hasW = hasWork(ds);
-      if (!hasW && c<=0) return 0;                 // no entries → 0
-      if (!hasW && c>0)  return -Math.min(c, TARGET); // comp-only day capped to one full target
-      // has work
-      if (w + c >= TARGET) return w - TARGET;      // comp covers the gap; surplus comp ignored
-      return (w + c) - TARGET;                     // under target; can be negative
-    }
-      if (hasW && c===0) {
-        return w - TARGET; // owe or gain based solely on worked time
-      }
-      if (!hasW && c>0) {
-        return -c; // compensation-only day reduces bank
-      }
-      return 0; // no work, no comp
-    }
+    function dayBankDelta(ds) {
+  if (isHoliday(ds)) return 0;
+
+  const w = workMins(ds);
+  const c = compMins(ds);
+  const hasW = hasWork(ds);
+
+  if (!hasW && c <= 0) {
+    return 0; // no entries → 0
+  }
+  if (!hasW && c > 0) {
+    return -Math.min(c, TARGET); // comp-only day capped to one full target
+  }
+
+  // has work
+  if (w + c >= TARGET) {
+    return w - TARGET; // comp fills the gap, surplus comp ignored
+  }
+  return (w + c) - TARGET; // under target; can be negative
+}
 
     // Overtime bank = sum of dayBankDelta over all dates
     function overtimeBank(){
