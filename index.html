@@ -110,7 +110,7 @@
 
 <script>
 const TARGET = 504;
-const KEY = 'hourlogger.v16';
+const KEY = 'hourlogger.v17';
 const state = JSON.parse(localStorage.getItem(KEY) || '{}');
 state.work ||= {}; state.comp ||= {};
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
@@ -124,7 +124,7 @@ const fmtSignedHM=m=>(m<0?'-':'')+fmtHM(m);
 
 // ---- Helpers ----
 function clamp01(x){ x=Number.isFinite(+x)?+x:0; return Math.max(0, Math.min(1,x)); }
-function pct(x){ return Math.max(0, Math.min(100,x)); }
+function p100(x){ return Math.max(0, Math.min(100,x)); }
 function workMins(ds){ return Number(state.work[ds]?.netMins)||0; }
 function compMins(ds){ return Number(state.comp[ds]?.mins)||0; }
 function isHoliday(ds){ return !!state.work[ds]?.holiday; }
@@ -206,9 +206,9 @@ function renderCalendar(){
     const el=document.createElement('div'); el.className='day'; if(ds===toDateStr(new Date())) el.classList.add('today');
 
     const w=workMins(ds), app=appliedComp(ds);
-    const leftWork=pct((w/TARGET)*100);
-    const leftComp = Math.max(0, Math.min(100-leftWork, pct((app/TARGET)*100)));
-    const rightOT=pct((Math.max(0, w-TARGET)/TARGET)*100);
+    const leftWork=p100((w/TARGET)*100);
+    const leftComp = Math.max(0, Math.min(100-leftWork, p100((app/TARGET)*100)));
+    const rightOT=p100((Math.max(0, w-TARGET)/TARGET)*100);
 
     const bars=document.createElement('div'); bars.className='bg-bars';
     const left=document.createElement('div'); left.className='bg-half';
@@ -236,7 +236,7 @@ function renderCalendar(){
 
 function openDayDrawer(ds){
   const w=workMins(ds), app=appliedComp(ds), c=compMins(ds);
-  const pct=completionPct(ds);
+  const compl=completionPct(ds);
   const delta=dayBankDelta(ds);
 
   let html = `<div class="pill" style="background:#fff; border:1px solid #e5e7eb; margin-bottom:6px"><strong>${ds}</strong>${isHoliday(ds)?' • Public holiday':''}</div>`;
@@ -249,8 +249,8 @@ function openDayDrawer(ds){
     <div class="bars">
       <div class="bar">
         <div class="fill green" style="width:${pct((w/TARGET)*100)}%"></div>
-        <div class="fill violet" style="left:${pct((w/TARGET)*100)}%; width:${Math.max(0, Math.min(100 - pct((w/TARGET)*100), pct((app/TARGET)*100)))}%"></div>
-        <div class="pct" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#111">${Math.round(pct*100)}%</div>
+        <div class="fill violet" style="left:${pct((w/TARGET)*100)}%; width:${Math.max(0, Math.min(100 - p100((w/TARGET)*100), p100((app/TARGET)*100)))}%"></div>
+        <div class="pct" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#111">${Math.round(compl*100)}%</div>
       </div>
       <div class="bar">
         <div class="fill red" style="width:${pct((Math.max(0,w-TARGET)/TARGET)*100)}%"></div>
