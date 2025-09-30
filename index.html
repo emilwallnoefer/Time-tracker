@@ -265,8 +265,18 @@
     // - Else => (work + comp - TARGET)  (can be + or -)
     function dayBankDelta(ds){
       if (isHoliday(ds)) return 0;
-      if (!hasWork(ds)) return 0;
-      return (workMins(ds) + compMins(ds)) - TARGET;
+      const w = workMins(ds); const c = compMins(ds);
+      const hasW = hasWork(ds);
+      if (hasW && c>0) { // if you logged work AND compensation same day: only the compensation affects the bank
+        return -c;
+      }
+      if (hasW && c===0) {
+        return w - TARGET; // owe or gain based solely on worked time
+      }
+      if (!hasW && c>0) {
+        return -c; // compensation-only day reduces bank
+      }
+      return 0; // no work, no comp
     }
 
     // Overtime bank = sum of dayBankDelta over all dates
