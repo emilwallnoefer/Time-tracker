@@ -74,6 +74,7 @@
     .green { background:#a7f3d0; }
     .red { background:#fecaca; }
     .violet { background:#e9d5ff; }
+    .gold { background:#fde68a; }
 
     /* Breaks list (mobile tidy) */
     #breaksPane { max-height: 220px; overflow:auto; padding-right:4px; }
@@ -138,6 +139,10 @@
       </div>
       <div class="legend">
         <span class="chip" id="legendOT">Lifetime overtime: 0h 00m</span>
+        <span class="chip">Green = Work</span>
+        <span class="chip">Violet = Compensation</span>
+        <span class="chip">Red = Positive OT</span>
+        <span class="chip">Gold = Holiday</span>
       </div>
       <div class="cal-grid" id="calDOW"></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -170,9 +175,15 @@
           <button class="btn" id="btnStopNow" style="margin-top:8px; width:100%">Stop now</button>
         </div>
       </div>
-      <div class="total">
+      <div class="total" style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
         <span class="muted">Net working time (breaks subtracted)</span>
         <strong id="computedTotal">0h 00m</strong>
+      </div>
+    </div>
+
+    <div class="group">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chkHoliday"> Public holiday (no deficit for this day)</label>
       </div>
     </div>
 
@@ -210,7 +221,7 @@
           <input type="text" id="compNote" placeholder="Doctor, PTO, etc." />
         </div>
       </div>
-      <p class="muted" style="margin-top:8px">Lifetime overtime sums daily (work + comp − 8h24m). Can go negative.</p>
+      <p class="muted" style="margin-top:8px">Lifetime overtime = sum of per-day (work − target) where you logged work (holidays exempt), minus all compensation.</p>
       <div class="pill" id="compBalance">Lifetime overtime: 0h 00m</div>
     </div>
     <div class="group">
@@ -225,12 +236,13 @@
     // ---- Constants ----
     const TARGET = 504; // fixed daily target = 8h24m
 
-    // ---- Persistence (schema v9) ----
-    const KEY = 'hourlogger.v9';
+    // ---- Persistence (schema v10) ----
+    const KEY = 'hourlogger.v10';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
     // One work session per day
     state.work ||= {}; // { 'YYYY-MM-DD': { start:'HH:MM', stop:'HH:MM', breaks:[{name,start,stop}], netMins:number } }
     state.comp ||= {}; // { 'YYYY-MM-DD': { mins:number, note?:string } }
+    state.holidays ||= {}; // { 'YYYY-MM-DD': true }
     function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
     // ---- Date helpers ----
@@ -245,16 +257,27 @@
     // ---- Per-day helpers ----
     function workMins(ds){ return state.work[ds]?.netMins || 0; }
     function compMins(ds){ return state.comp[ds]?.mins || 0; }
-    function completionPct(ds){ return Math.min(1, (workMins(ds) + compMins(ds)) / TARGET); }
-    function dayOvertimeMins(ds){ return (workMins(ds) + compMins(ds)) - TARGET; } // can be negative or positive
+    function isHoliday(ds){ return !!state.holidays[ds]; }
 
-    // ---- Lifetime (sum across all days of (work + comp − target)) ----
-    function lifetimeOvertimeMins(){
-      const days = new Set([...Object.keys(state.work), ...Object.keys(state.comp)]);
-      let total = 0;
-      days.forEach(ds => { total += dayOvertimeMins(ds); });
-      return total;
+    // completion uses work + comp, holidays show 100% for visuals
+    function completionPct(ds){ return isHoliday(ds) ? 1 : Math.min(1, (workMins(ds) + compMins(ds)) / TARGET); }
+
+    // Per-day overtime logic (can be negative only if you logged work that day; holidays force 0; no-log days 0)
+    function dayWorkOvertimeMins(ds){
+      if (isHoliday(ds)) return 0;
+      if (!state.work[ds]) return 0; // only days you started logging
+      return workMins(ds) - TARGET; // can be negative or positive
     }
+
+    // Lifetime = sum of dayWorkOvertime across all days (pos/neg) minus all compensation minutes
+    function lifetimeOvertimeMins(){
+      const allDays = new Set([...Object.keys(state.work), ...Object.keys(state.holidays)]);
+      let total = 0;
+      allDays.forEach(ds => { total += dayWorkOvertimeMins(ds); });
+      const totalComp = Object.values(state.comp).reduce((t,c)=> t + (c.mins||0), 0);
+      return total - totalComp;
+    }
+
     function monthWorkedMins(year, month){
       let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += workMins(toDateStr(d)); return total;
     }
@@ -293,23 +316,30 @@
 
         // Background big bars
         const worked = workMins(ds), comp = compMins(ds);
-        const leftPctWork = Math.min(100, worked / TARGET * 100);
-        const leftPctComp = Math.max(0, Math.min(100, (worked + comp) / TARGET * 100) - leftPctWork);
-        const rightPctOT = Math.max(0, dayOvertimeMins(ds)) / TARGET * 100;
+        const leftPctWork = Math.min(100, (isHoliday(ds)?100:worked / TARGET * 100));
+        const leftPctComp = isHoliday(ds) ? 0 : Math.max(0, Math.min(100, ((worked + comp) / TARGET * 100)) - Math.min(100, (worked / TARGET * 100)));
+        const dayOT = Math.max(0, dayWorkOvertimeMins(ds)); // positive OT only for red bar
+        const rightPctOT = isHoliday(ds) ? 0 : Math.min(100, (dayOT / TARGET * 100));
+
         const bars = document.createElement('div'); bars.className='bg-bars';
         const left = document.createElement('div'); left.className='bg-half';
-        const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftPctWork + '%';
-        const fillV = document.createElement('div'); fillV.className='fill violet'; fillV.style.left = leftPctWork + '%'; fillV.style.width = leftPctComp + '%';
-        left.appendChild(fillG); left.appendChild(fillV);
+        if (isHoliday(ds)){
+          const fillH = document.createElement('div'); fillH.className='fill gold'; fillH.style.width = '100%';
+          left.appendChild(fillH);
+        } else {
+          const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftPctWork + '%';
+          const fillV = document.createElement('div'); fillV.className='fill violet'; fillV.style.left = Math.min(100, (worked / TARGET * 100)) + '%'; fillV.style.width = leftPctComp + '%';
+          left.appendChild(fillG); left.appendChild(fillV);
+        }
         const right = document.createElement('div'); right.className='bg-half';
-        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = Math.min(100, rightPctOT) + '%';
+        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = rightPctOT + '%';
         right.appendChild(fillR);
         bars.appendChild(left); bars.appendChild(right);
         el.appendChild(bars);
 
         // Foreground labels
-        const pct = Math.round(Math.min(100, (worked + comp) / TARGET * 100));
-        el.innerHTML += `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
+        const pct = Math.round(completionPct(ds) * 100);
+        el.innerHTML += `<span class="n">${d.getDate()}</span><div class="pct">${isHoliday(ds)?'Holiday':pct+'%'}</div>`;
         if (worked){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(worked); el.appendChild(hh); }
         else if (comp){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(comp); el.appendChild(hh); }
 
@@ -326,27 +356,25 @@
       const w = state.work[ds]; const c = state.comp[ds];
       const worked = workMins(ds);
       const comp = compMins(ds);
-      const completion = completionPct(ds);
-      const dayOT = dayOvertimeMins(ds);
-
-      let html = `<div class="row"><strong>${ds}</strong></div>`;
+      const dayOTWork = dayWorkOvertimeMins(ds); // can be neg
+      let html = `<div class="row"><strong>${ds}${isHoliday(ds)?' · Public holiday':''}</strong></div>`;
       html += `<div class="group" style="margin-top:8px">
         <div class="row">
           <div class="chip">Worked: ${fmtHM(worked)}</div>
           <div class="chip">Comp: ${fmtHM(comp)}</div>
-          <div class="chip">Overtime: ${fmtSignedHM(dayOT)}</div>
-          ${w ? `<div class="chip">Start ${w.start||'-'}</div><div class="chip">Stop ${w.stop||'-'}</div>` : ''}
-          ${w && w.breaks?.length ? `<div class="chip">${w.breaks.length} break(s)</div>` : ''}
+          <div class="chip">Work OT: ${fmtSignedHM(dayOTWork)}</div>
         </div>
         <div class="bars">
           <div class="bar" style="position:relative;">
-            <div class="fill green" style="width:${Math.min(100, worked/TARGET*100)}%"></div>
-            <div class="fill violet" style="left:${Math.min(100, worked/TARGET*100)}%; width:${Math.max(0, Math.min(100, (worked+comp)/TARGET*100) - Math.min(100, worked/TARGET*100))}%"></div>
-            <div class="label">${Math.round(completion*100)}%</div>
+            ${isHoliday(ds) ? `<div class="fill gold" style="width:100%"></div><div class="label">Holiday</div>` :
+            `<div class="fill green" style="width:${Math.min(100, worked/TARGET*100)}%"></div>
+             <div class="fill violet" style="left:${Math.min(100, worked/TARGET*100)}%; width:${Math.max(0, Math.min(100, (worked+comp)/TARGET*100) - Math.min(100, worked/TARGET*100))}%"></div>
+             <div class="label">${Math.round(completionPct(ds)*100)}%</div>`}
           </div>
-          <div class="bar"><div class="fill red" style="width:${Math.min(100, Math.max(0, dayOT)/TARGET*100)}%"></div><div class="label">${fmtSignedHM(dayOT)}</div></div>
+          <div class="bar"><div class="fill red" style="width:${Math.min(100, Math.max(0, dayOTWork)/TARGET*100)}%"></div><div class="label">${fmtHM(Math.max(0, dayOTWork))}</div></div>
         </div>
-        <div class="row" style="margin-top:8px">
+        <div class="row" style="margin-top:8px; align-items:center; gap:12px;">
+          <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="drawerHoliday"> Public holiday</label>
           <button class="btn" id="drawerEdit">Edit work</button>
           <button class="btn" id="drawerEditComp">Edit compensation</button>
           <button class="btn danger" id="drawerReset">Reset this day</button>
@@ -354,9 +382,11 @@
       </div>`;
 
       document.getElementById('dayDrawer').innerHTML = html; document.getElementById('dayDrawer').classList.add('active');
+      const chk = document.getElementById('drawerHoliday'); chk.checked = isHoliday(ds);
+      chk.onchange = ()=>{ if (chk.checked) state.holidays[ds]=true; else delete state.holidays[ds]; save(); renderMenu(); renderCalendar(); openDayDrawer(ds); };
       document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
       document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
-      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); document.getElementById('dayDrawer').classList.remove('active'); };
+      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; delete state.holidays[ds]; save(); renderMenu(); renderCalendar(); document.getElementById('dayDrawer').classList.remove('active'); };
     }
 
     document.getElementById('calPrev').addEventListener('click', ()=>{ monthOffset--; renderCalendar(); });
@@ -392,6 +422,7 @@
       breaksPane.innerHTML=''; breaksPane.classList.remove('active');
       document.getElementById('computedTotal').textContent='0h 00m';
       const w = state.work[ds];
+      document.getElementById('chkHoliday').checked = isHoliday(ds);
       if (w){
         document.getElementById('startTime').value = w.start||'';
         document.getElementById('stopTime').value = w.stop||'';
@@ -411,6 +442,11 @@
     document.getElementById('logDate').addEventListener('change', (e)=>{
       const ds = e.target.value; clearLoggerFor(ds);
     });
+    document.getElementById('chkHoliday').addEventListener('change', (e)=>{
+      const ds = document.getElementById('logDate').value || toDateStr(new Date());
+      if (e.target.checked) state.holidays[ds]=true; else delete state.holidays[ds];
+      save(); renderMenu(); renderCalendar();
+    });
 
     document.getElementById('btnStartNow').addEventListener('click', ()=>{ document.getElementById('startTime').value = nowHHMM(); computeTotal(); });
     document.getElementById('btnStopNow').addEventListener('click',  ()=>{ document.getElementById('stopTime').value  = nowHHMM(); computeTotal(); });
@@ -422,18 +458,20 @@
       const ds = document.getElementById('logDate').value || toDateStr(new Date());
       const a = document.getElementById('startTime').value.trim();
       const b = document.getElementById('stopTime').value.trim();
-      if (!validTime(a) || !validTime(b)) { alert('Enter both start and stop times'); return; }
+      if (!/^\d{2}:\d{2}$/.test(a) || !/^\d{2}:\d{2}$/.test(b)) { alert('Enter both start and stop times'); return; }
       const net = computeTotal();
       const breaks=[];
-      breaksPane.querySelectorAll('.break-item').forEach(it=>{ breaks.push({ name: it.querySelector('.bi-name').value.trim(), start: it.querySelector('.bi-start').value.trim(), stop: it.querySelector('.bi-stop').value.trim() }); });
+      document.querySelectorAll('#breaksPane .break-item').forEach(it=>{ breaks.push({ name: it.querySelector('.bi-name').value.trim(), start: it.querySelector('.bi-start').value.trim(), stop: it.querySelector('.bi-stop').value.trim() }); });
       state.work[ds] = { start:a, stop:b, breaks, netMins: net };
+      // holiday checkbox already saved on change
       save(); renderMenu(); renderCalendar(); show('menu');
     });
 
     document.getElementById('btnResetWork').addEventListener('click', ()=>{
       const ds = document.getElementById('logDate').value || toDateStr(new Date());
-      if (state.work[ds]) { delete state.work[ds]; save(); }
-      clearLoggerFor(ds); renderMenu(); renderCalendar();
+      if (state.work[ds]) { delete state.work[ds]; }
+      // don't change holiday flag here
+      save(); clearLoggerFor(ds); renderMenu(); renderCalendar();
     });
 
     // ---- Compensation ----
