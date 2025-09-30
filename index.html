@@ -28,10 +28,10 @@
     .view { display: none; padding: var(--pad); }
     .view.active { display: block; }
 
-    /* Hero */
-    .hero { position: relative; min-height: 140px; border-radius: 24px; overflow: hidden; background: radial-gradient(80% 80% at 50% 30%, #eef6ff, #fff); border: 1px solid #eef2f7; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: flex; align-items: center; justify-content: center; }
-    .hero::after { content: ""; position: absolute; inset: 0; background-image: url('icon-512.png'); background-size: 50%; background-position: center; background-repeat: no-repeat; opacity: .06; }
-    .hero h1 { position: relative; z-index: 1; font-size: 24px; margin: 0; }
+    /* Menu */
+    .hero { position: relative; height: 35vh; min-height: 200px; border-radius: 24px; overflow: hidden; background: radial-gradient(80% 80% at 50% 30%, #eef6ff, #fff); border: 1px solid #eef2f7; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: flex; align-items: center; justify-content: center; }
+    .hero::after { content: ""; position: absolute; inset: 0; background-image: url('icon-512.png'); background-size: 60%; background-position: center; background-repeat: no-repeat; opacity: .06; }
+    .hero h1 { position: relative; z-index: 1; font-size: 28px; margin: 0; }
 
     .cards { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
     .card { background: var(--card); border: 1px solid #eee; border-radius: 18px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
@@ -39,49 +39,33 @@
     .card p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
     .card button { margin-left: auto; border: 1px solid #111; background: #111; color: #fff; border-radius: 12px; padding: 10px 14px; }
 
-    /* Groups, inputs, buttons */
+    /* Logger */
     .group { background: var(--card); border: 1px solid #eee; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
     label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-    input[type="time"], input[type="date"], input[type="text"], input[type="number"] { width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; font-size: 16px; }
+    input[type="time"], input[type="date"], input[type="text"] { width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; font-size: 16px; }
+    .row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: end; }
     .btn { border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 15px; }
     .btn.primary { background: #111; border-color: #111; color: #fff; }
     .btn.danger { border-color: #ef4444; color: #ef4444; }
 
-    /* Logger responsive layout */
-    .logger-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .logger-grid > div { align-self: flex-start; }
-    .center { text-align:center; }
-    @media (min-width: 520px) { .logger-grid { grid-template-columns: 1fr auto 1fr; align-items: start; } }
-
     /* Calendar */
     .cal-wrap { background: var(--card); border: 1px solid #eee; border-radius: 16px; padding: 10px; }
-    .cal-head { display: flex; align-items: center; gap: 8px; padding: 8px; flex-wrap: wrap; }
+    .cal-head { display: flex; align-items: center; gap: 8px; padding: 8px; }
     .cal-title { font-weight: 700; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 8px; }
     .dow { text-align: center; font-size: 12px; color: var(--muted); }
-    .day { border: 1px solid #eee; border-radius: 12px; padding: 8px; min-height: 90px; position: relative; background: #fff; overflow:hidden; }
-    .day .n { position: absolute; top: 6px; left: 6px; font-size: 12px; color: #111; font-weight:700; z-index:2; }
-    .day .h { position: absolute; bottom: 6px; right: 6px; font-weight: 700; font-size: 12px; color: #111; z-index:2; }
-    .day .pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#0f5132; opacity:.95; pointer-events:none; z-index:2; }
+    .day { border: 1px solid #eee; border-radius: 12px; padding: 8px; min-height: 72px; position: relative; background: #fff; }
+    .day .n { position: absolute; top: 8px; left: 8px; font-size: 12px; color: #6b7280; }
+    .day .h { position: absolute; bottom: 8px; right: 8px; font-weight: 700; font-size: 12px; color: #111; }
     .day.today { outline: 2px solid #111; }
-    .cal-footer { display:flex; gap:8px; flex-wrap:wrap; padding: 10px; border-top:1px solid #eee; margin-top:8px; border-radius: 0 0 12px 12px; background:#fff; }
 
-    /* Big background bars inside calendar day */
-    .bg-bars { position:absolute; left:4px; right:4px; top:22px; height:58px; display:flex; gap:6px; z-index:1; }
-    .bg-half { position:relative; flex:1; border-radius:10px; background:#f7f7f7; border:1px solid #e5e7eb; overflow:hidden; }
-    .fill { position:absolute; top:0; left:0; height:100%; }
-    .green { background:#a7f3d0; }
-    .red { background:#fecaca; }
-    .violet { background:#e9d5ff; }
-
-    /* Breaks list (mobile tidy) */
-    #breaksPane { max-height: 220px; overflow:auto; padding-right:4px; }
-    .breaks.active { display:block; }
-    .break-item { display:grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap:6px; align-items:end; margin-bottom:6px; }
+    /* Breaks list */
+    .breaks { display: none; margin-top: 10px; }
+    .breaks.active { display: block; }
+    .break-item { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
     .break-item small { color: var(--muted); display:block; margin-bottom:4px; }
-
     .muted { color: var(--muted); font-size: 13px; }
-    .total { display:flex; justify-content:space-between; align-items:center; padding-top:6px; }
+    .total { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; }
   </style>
 </head>
 <body>
@@ -96,34 +80,26 @@
   <section id="view-menu" class="view active">
     <div class="hero"><h1>Track your day</h1></div>
 
-    <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <span class="pill" id="pillTodayHours">Today: 0h 00m</span>
-      <span class="pill" id="pillBank">Overtime bank: 0h 00m</span>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+      <span class="pill" id="pillTodayHours">Today: 0 h</span>
+      <span class="pill" id="pillMonthHours">This month: 0 h</span>
     </div>
 
     <div class="cards">
       <div class="card">
         <div>
-          <h3 id="todayCardTitle">Today’s logging</h3>
-          <p>Working time (-breaks), start / stop, breaks, save.</p>
-        </div>
-        <button id="goLogger">Open</button>
-      </div>
-
-      <div class="card">
-        <div>
           <h3>Calendar</h3>
-          <p>See/edit any day’s details.</p>
+          <p>Review all previous logs in a monthly view.</p>
         </div>
         <button id="goCalendar">Open</button>
       </div>
 
       <div class="card">
         <div>
-          <h3>Compensate overtime</h3>
-          <p>Reduce the bank by logging compensation.</p>
+          <h3 id="todayCardTitle">Today · —</h3>
+          <p>Time Logger — set start/stop, add breaks, and save.</p>
         </div>
-        <button id="goComp">Add</button>
+        <button id="goLogger">Log</button>
       </div>
     </div>
   </section>
@@ -140,8 +116,6 @@
       </div>
       <div class="cal-grid" id="calDOW"></div>
       <div class="cal-grid" id="calGrid"></div>
-      <div class="drawer" id="dayDrawer"></div>
-      <div class="cal-footer" id="calFooter"></div>
     </div>
   </section>
 
@@ -150,24 +124,20 @@
     <div class="group">
       <label>Date</label>
       <input type="date" id="logDate" />
-      <div style="margin-top:8px">
-        <label style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" id="holidayFlag" />
-          <span>Public holiday (full day)</span>
-        </label>
-      </div>
     </div>
 
     <div class="group">
-      <div class="logger-grid">
+      <div class="row">
         <div>
           <label><strong>Start</strong></label>
           <input type="time" id="startTime" />
           <button class="btn" id="btnStartNow" style="margin-top:8px; width:100%">Start now</button>
         </div>
-        <div class="center">
+        <div style="text-align:center">
           <button class="btn" id="btnAddBreak">+ Add break</button>
-          <div class="breaks" id="breaksPane"></div>
+          <div class="breaks" id="breaksPane">
+            <!-- Break rows appear here -->
+          </div>
         </div>
         <div>
           <label><strong>Stop</strong></label>
@@ -176,333 +146,221 @@
         </div>
       </div>
       <div class="total">
-        <span class="muted">Working time (-breaks)</span>
-        <strong id="computedTotal">0h 00m</strong>
+        <span class="muted">Net working time (breaks subtracted)</span>
+        <strong id="computedTotal">0.00 h</strong>
       </div>
     </div>
 
     <div class="group">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnSave">Save day</button>
-        <button class="btn danger" id="btnResetWork">Reset this day</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- COMPENSATE OVERTIME VIEW -->
-  <section id="view-comp" class="view">
-    <div class="group">
-      <label>Date for compensation</label>
-      <input type="date" id="compDate" />
-    </div>
-    <div class="group">
-      <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:120px;">
-          <label>Hours</label>
-          <input type="number" id="compHours" min="0" value="0" />
-        </div>
-        <div style="flex:1; min-width:120px;">
-          <label>Minutes</label>
-          <input type="number" id="compMinutes" min="0" max="59" value="0" />
-        </div>
-        <div style="align-self:end;">
-          <button class="btn" id="btnFullDay">Full day (8h24m)</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <div style="flex:1;">
-          <label>Note (optional)</label>
-          <input type="text" id="compNote" placeholder="Doctor, PTO, etc." />
-        </div>
-      </div>
-      <div class="pill" id="compBalance">Overtime bank: 0h 00m</div>
-    </div>
-    <div class="group">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnSaveComp">Save compensation</button>
-        <button class="btn danger" id="btnResetComp">Reset compensation for this day</button>
-      </div>
+      <button class="btn primary" id="btnSave">Save to calendar</button>
     </div>
   </section>
 
   <script>
-    // ---- Constants ----
-    const TARGET = 504; // fixed daily target = 8h24m
-
-    // ---- Persistence (schema v15) ----
-    const KEY = 'hourlogger.v15';
+    // ---- Persistence ----
+    const KEY = 'hourlogger.v2';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
-    state.work ||= {};    // { 'YYYY-MM-DD': { start, stop, breaks[], netMins, holiday?:true } }
-    state.comp ||= {};    // { 'YYYY-MM-DD': { mins, note? } }
+    state.entries ||= []; // [{date:'YYYY-MM-DD', hours: number}]
+
     function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
     // ---- Date helpers ----
     const pad = n => String(n).padStart(2,'0');
     const toDateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const fromDateStr = s => { const [y,m,da]=s.split('-').map(Number); return new Date(y, m-1, da); };
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const fmtHM = mins => `${Math.floor(Math.abs(mins)/60)}h ${pad(Math.abs(mins)%60)}m`;
-    const fmtSignedHM = mins => (mins<0?'-':'') + fmtHM(mins);
 
-    // ---- Helpers ----
-    function workMins(ds){ return state.work[ds]?.netMins || 0; }
-    function compMins(ds){ return state.comp[ds]?.mins || 0; }
-    function isHoliday(ds){ return !!state.work[ds]?.holiday; }
-    function hasWork(ds){ return !!state.work[ds] && (state.work[ds].start || state.work[ds].stop || (state.work[ds].breaks||[]).length || state.work[ds].netMins>0); }
-
-    // Applied compensation toward target (prevents violet overflow)
-    function appliedComp(ds){
-      const w = workMins(ds), c = compMins(ds);
-      if (w >= TARGET) return 0;
-      const deficit = TARGET - w;
-      return Math.min(c, deficit);
+    function sumHours(dateStr){
+      return +(state.entries.filter(e=>e.date===dateStr).reduce((t,e)=>t+e.hours,0)).toFixed(2);
     }
-
-    function completionPct(ds){
-      return Math.max(0, Math.min(1, (workMins(ds) + appliedComp(ds)) / TARGET));
-    }
-
-    // Daily impact on bank per your rules
-    function dayBankDelta(ds){
-      if (isHoliday(ds)) return 0;
-      const w = workMins(ds), c = compMins(ds), hasW = hasWork(ds);
-      if (!hasW && c===0) return 0;          // no logging day → 0
-      if (!hasW && c>0) return -c;           // comp-only day → -comp
-      if (hasW && w >= TARGET) return w - TARGET; // met target on work alone → positive
-      if (hasW && w < TARGET) return -Math.min(c, TARGET - w); // use comp up to deficit only
-      return 0;
-    }
-
-    function overtimeBank(){
-      const dates = new Set([...Object.keys(state.work), ...Object.keys(state.comp)]);
-      let total = 0;
-      dates.forEach(ds => total += dayBankDelta(ds));
-      return total;
-    }
-
-    function monthWorkedMins(year, month){
-      let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += workMins(toDateStr(d)); return total;
+    function sumRange(a,b){ // inclusive of a..b
+      const A = fromDateStr(a), B = fromDateStr(b); B.setHours(23,59,59,999);
+      return +(state.entries.filter(e=>{ const d=fromDateStr(e.date); return d>=A && d<=B; }).reduce((t,e)=>t+e.hours,0)).toFixed(2);
     }
 
     // ---- View management ----
-    const views = { menu: document.getElementById('view-menu'), calendar: document.getElementById('view-calendar'), logger: document.getElementById('view-logger'), comp: document.getElementById('view-comp') };
+    const views = { menu: document.getElementById('view-menu'), calendar: document.getElementById('view-calendar'), logger: document.getElementById('view-logger') };
     const btnBack = document.getElementById('btnBack');
-    function show(name){ Object.values(views).forEach(v=>v.classList.remove('active')); views[name].classList.add('active'); btnBack.style.visibility = (name==='menu') ? 'hidden' : 'visible'; if (name==='menu') renderMenu(); if (name==='calendar') renderCalendar(); if (name==='logger') renderLogger(); if (name==='comp') renderComp(); }
+    let currentView = 'menu';
+    function show(name){
+      for (const v in views) views[v].classList.remove('active');
+      views[name].classList.add('active');
+      currentView = name;
+      btnBack.style.visibility = (name==='menu') ? 'hidden' : 'visible';
+      if (name==='menu') renderMenu();
+      if (name==='calendar') renderCalendar();
+      if (name==='logger') renderLogger();
+    }
     btnBack.addEventListener('click', ()=>show('menu'));
 
     // ---- Menu ----
-    const pillToday = document.getElementById('pillToday'), pillTodayHours = document.getElementById('pillTodayHours'), pillBank = document.getElementById('pillBank');
-    document.getElementById('goCalendar').addEventListener('click', ()=>show('calendar'));
-    document.getElementById('goLogger').addEventListener('click', ()=>show('logger'));
-    document.getElementById('goComp').addEventListener('click', ()=>show('comp'));
+    const pillToday = document.getElementById('pillToday');
+    const pillTodayHours = document.getElementById('pillTodayHours');
+    const pillMonthHours = document.getElementById('pillMonthHours');
+    const todayCardTitle = document.getElementById('todayCardTitle');
 
     function renderMenu(){
-      const now = new Date(); const dStr = toDateStr(now);
+      const now = new Date();
+      const dStr = toDateStr(now);
       pillToday.textContent = dStr;
-      pillTodayHours.textContent = "Today: " + fmtHM(workMins(dStr));
-      pillBank.textContent = "Overtime bank: " + fmtSignedHM(overtimeBank());
+      todayCardTitle.textContent = `Today · ${dStr}`;
+      pillTodayHours.textContent = `Today: ${sumHours(dStr)} h`;
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      pillMonthHours.textContent = `This month: ${sumRange(toDateStr(monthStart), toDateStr(monthEnd))} h`;
     }
+
+    document.getElementById('goCalendar').addEventListener('click', ()=>show('calendar'));
+    document.getElementById('goLogger').addEventListener('click', ()=>show('logger'));
 
     // ---- Calendar ----
-    const calTitle = document.getElementById('calTitle'), calDOW = document.getElementById('calDOW'), calGrid = document.getElementById('calGrid'), dayDrawer = document.getElementById('dayDrawer'), calFooter = document.getElementById('calFooter'); let monthOffset = 0;
-    function startOfMonthWithMondayGrid(date){ const first = new Date(date.getFullYear(), date.getMonth(), 1); const day = (first.getDay() + 6) % 7; first.setDate(first.getDate() - day); first.setHours(0,0,0,0); return first; }
-    function renderCalendar(){
-      const base = new Date(); base.setMonth(base.getMonth()+monthOffset);
-      calTitle.textContent = monthNames[base.getMonth()] + " " + base.getFullYear();
-      // Week headers
-      calDOW.innerHTML=''; dows.forEach(d=>{ const el=document.createElement('div'); el.textContent=d; el.className='dow'; calDOW.appendChild(el); });
-      calGrid.innerHTML=''; dayDrawer.classList.remove('active');
-      const start = startOfMonthWithMondayGrid(base);
-      for (let i=0;i<42;i++){
-        const d = new Date(start); d.setDate(start.getDate()+i); const ds = toDateStr(d);
-        const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
+    const calTitle = document.getElementById('calTitle');
+    const calDOW = document.getElementById('calDOW');
+    const calGrid = document.getElementById('calGrid');
+    let monthOffset = 0; // 0 = current month
 
-        // Background big bars
-        const w = workMins(ds), c = compMins(ds), app = appliedComp(ds);
-        const leftWork = Math.min(100, (w / TARGET) * 100);
-        const leftComp = Math.min(100 - leftWork, (app / TARGET) * 100); // clamp comp to remaining space
-        const delta = dayBankDelta(ds);
-        const rightOT = Math.max(0, delta) / TARGET * 100;
-
-        const bars = document.createElement('div'); bars.className='bg-bars';
-        const left = document.createElement('div'); left.className='bg-half';
-        const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftWork + '%';
-        const fillV = document.createElement('div'); fillV.className='fill violet'; fillV.style.left = leftWork + '%'; fillV.style.width = leftComp + '%';
-        left.appendChild(fillG); if (leftComp>0.001) left.appendChild(fillV);
-        const right = document.createElement('div'); right.className='bg-half';
-        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = Math.min(100, rightOT) + '%';
-        if (rightOT>0.001) right.appendChild(fillR);
-        bars.appendChild(left); bars.appendChild(right);
-        el.appendChild(bars);
-
-        // Foreground labels
-        const pct = Math.round(completionPct(ds) * 100);
-        el.innerHTML += `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
-        if (w){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(w); el.appendChild(hh); }
-        else if (c){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(c); el.appendChild(hh); }
-
-        el.addEventListener('click', ()=>openDayDrawer(ds)); calGrid.appendChild(el);
-      }
-      // footer: month hours + bank
-      const totalH = fmtHM(monthWorkedMins(base.getFullYear(), base.getMonth()));
-      const bank = fmtSignedHM(overtimeBank());
-      calFooter.innerHTML = `<strong>Month hours:</strong> ${totalH} · <strong>Overtime bank:</strong> ${bank}`;
+    function startOfMonthWithMondayGrid(date){
+      const first = new Date(date.getFullYear(), date.getMonth(), 1);
+      const day = (first.getDay() + 6) % 7; // Monday=0
+      first.setDate(first.getDate() - day);
+      first.setHours(0,0,0,0);
+      return first;
     }
 
-    function openDayDrawer(ds){
-      const w = workMins(ds), c = compMins(ds), app = appliedComp(ds);
-      const pct = completionPct(ds);
-      const delta = dayBankDelta(ds);
+    function renderCalendar(){
+      const base = new Date(); base.setMonth(base.getMonth()+monthOffset);
+      const monthName = monthNames[base.getMonth()];
+      calTitle.textContent = `${monthName} ${base.getFullYear()}`;
 
-      let html = `<div class="muted" style="margin-bottom:6px"><strong>${ds}</strong>${isHoliday(ds)?' • Public holiday':''}</div>`;
-      html += `<div class="group" style="margin-top:0">
-        <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
-          <div class="pill">Worked: ${fmtHM(w)}</div>
-          <div class="pill">Comp (applied): ${fmtHM(app)}${c>app?` (+${fmtHM(c-app)} untouched)`:''}</div>
-          <div class="pill">Day impact: ${fmtSignedHM(delta)}</div>
-        </div>
-        <div class="bars" style="display:flex; gap:8px; margin-top:10px;">
-          <div class="bar" style="position:relative; overflow:hidden;">
-            <div class="fill green" style="width:${Math.min(100, w/TARGET*100)}%"></div>
-            <div class="fill violet" style="left:${Math.min(100, w/TARGET*100)}%; width:${Math.min(100 - Math.min(100, w/TARGET*100), app/TARGET*100)}%"></div>
-            <div class="label">${Math.round(pct*100)}%</div>
-          </div>
-          <div class="bar" style="overflow:hidden;"><div class="fill red" style="width:${Math.min(100, Math.max(0, delta)/TARGET*100)}%"></div><div class="label">${fmtSignedHM(delta)}</div></div>
-        </div>
-        <div class="row" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" id="drawerEdit">Edit work</button>
-          <button class="btn" id="drawerEditComp">Edit compensation</button>
-          <button class="btn danger" id="drawerReset">Reset this day</button>
-        </div>
-      </div>`;
+      // DOW header
+      calDOW.innerHTML = '';
+      dows.forEach(d=>{ const el=document.createElement('div'); el.textContent=d; el.className='dow'; calDOW.appendChild(el); });
 
-      const drawer = document.getElementById('dayDrawer');
-      drawer.innerHTML = html; drawer.classList.add('active');
-      document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
-      document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
-      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); drawer.classList.remove('active'); };
+      // Grid days (6 weeks)
+      calGrid.innerHTML='';
+      const start = startOfMonthWithMondayGrid(base);
+      for (let i=0;i<42;i++){
+        const d = new Date(start); d.setDate(start.getDate()+i);
+        const ds = toDateStr(d);
+        const el = document.createElement('div'); el.className='day';
+        if (ds===toDateStr(new Date())) el.classList.add('today');
+        el.innerHTML = `<span class="n">${d.getDate()}</span>`;
+        const h = sumHours(ds);
+        if (h>0) {
+          const hh = document.createElement('span'); hh.className='h'; hh.textContent = h + ' h'; el.appendChild(hh);
+        }
+        el.addEventListener('click', ()=>{ // jump to logger with that date
+          document.getElementById('logDate').value = ds;
+          show('logger');
+        });
+        calGrid.appendChild(el);
+      }
     }
 
     document.getElementById('calPrev').addEventListener('click', ()=>{ monthOffset--; renderCalendar(); });
     document.getElementById('calNext').addEventListener('click', ()=>{ monthOffset++; renderCalendar(); });
     document.getElementById('calToday').addEventListener('click', ()=>{ monthOffset=0; renderCalendar(); });
 
-    // ---- Logger (one session/day) ----
-    function nowHHMM(){ const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
+    // ---- Logger with breaks ----
+    function nowHHMM(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; }
     function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60 + m; }
     function validTime(t){ return /^\d{2}:\d{2}$/.test(t); }
+
     const breaksPane = document.getElementById('breaksPane');
 
     function computeTotal(){
-      const a = document.getElementById('startTime').value.trim(); const b = document.getElementById('stopTime').value.trim();
-      if (!validTime(a) || !validTime(b)) { document.getElementById('computedTotal').textContent = '0h 00m'; return 0; }
-      let work = parseHHMM(b) - parseHHMM(a); if (work<0) work += 24*60;
-      let breakTotal = 0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(); const e=it.querySelector('.bi-stop').value.trim(); if (validTime(s)&&validTime(e)){ let mins=parseHHMM(e)-parseHHMM(s); if (mins>0) breakTotal += mins; } });
-      const net = Math.max(0, work - breakTotal); document.getElementById('computedTotal').textContent = fmtHM(net); return net;
+      const a = document.getElementById('startTime').value.trim();
+      const b = document.getElementById('stopTime').value.trim();
+      if (!validTime(a) || !validTime(b)) { document.getElementById('computedTotal').textContent = '0.00 h'; return 0; }
+      let work = parseHHMM(b) - parseHHMM(a);
+      if (work < 0) work += 24*60; // cross-midnight fallback
+      // subtract breaks
+      const items = breaksPane.querySelectorAll('.break-item');
+      let breakTotal = 0;
+      items.forEach(it=>{
+        const s = it.querySelector('.bi-start').value.trim();
+        const e = it.querySelector('.bi-stop').value.trim();
+        if (validTime(s) && validTime(e)) {
+          let mins = parseHHMM(e) - parseHHMM(s);
+          if (mins < 0) mins = 0; // ignore invalid/inverted for now
+          breakTotal += mins;
+        }
+      });
+      const net = Math.max(0, work - breakTotal);
+      const hours = (net/60).toFixed(2);
+      document.getElementById('computedTotal').textContent = hours + ' h';
+      return net;
     }
+
     function addBreakRow(initial={name:'', start:'', stop:''}){
-      const row = document.createElement('div'); row.className='break-item'; row.innerHTML = `
-        <div><small>Name</small><input type="text" class="bi-name" placeholder="Lunch / Errand" value="${initial.name||''}"></div>
-        <div><small>Start</small><input type="time" class="bi-start" value="${initial.start||''}"></div>
-        <div><small>Stop</small><input type="time" class="bi-stop" value="${initial.stop||''}"></div>
-        <div><button class="btn danger bi-del">Remove</button></div>`;
-      breaksPane.appendChild(row); document.getElementById('breaksPane').classList.add('active');
+      breaksPane.classList.add('active');
+      const row = document.createElement('div');
+      row.className = 'break-item';
+      row.innerHTML = `
+        <div>
+          <small>Name</small>
+          <input type="text" class="bi-name" placeholder="Lunch / Errand" value="${initial.name||''}">
+        </div>
+        <div>
+          <small>Start</small>
+          <input type="time" class="bi-start" value="${initial.start||''}">
+        </div>
+        <div>
+          <small>Stop</small>
+          <input type="time" class="bi-stop" value="${initial.stop||''}">
+        </div>
+        <div>
+          <button class="btn danger bi-del">Remove</button>
+        </div>`;
+      breaksPane.appendChild(row);
       row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', computeTotal));
-      row.querySelector('.bi-del').addEventListener('click', ()=>{ row.remove(); if(!breaksPane.querySelector('.break-item')) breaksPane.classList.remove('active'); computeTotal(); });
+      row.querySelector('.bi-del').addEventListener('click', ()=>{ row.remove(); if (!breaksPane.querySelector('.break-item')) breaksPane.classList.remove('active'); computeTotal(); });
       computeTotal();
     }
-    function clearLoggerFor(ds){
-      document.getElementById('startTime').value=''; document.getElementById('stopTime').value='';
-      breaksPane.innerHTML=''; breaksPane.classList.remove('active');
-      document.getElementById('computedTotal').textContent='0h 00m';
-      const w = state.work[ds];
-      document.getElementById('holidayFlag').checked = !!(w && w.holiday);
-      if (w){
-        document.getElementById('startTime').value = w.start||'';
-        document.getElementById('stopTime').value = w.stop||'';
-        (w.breaks||[]).forEach(b=>addBreakRow(b));
-        computeTotal();
-      }
-    }
-    function loadDayIntoLogger(ds){
-      document.getElementById('logDate').value = ds;
-      clearLoggerFor(ds);
-    }
-    function renderLogger(){
-      const dateInput = document.getElementById('logDate');
-      if (!dateInput.value) dateInput.value = toDateStr(new Date());
-      clearLoggerFor(dateInput.value);
-    }
-    document.getElementById('logDate').addEventListener('change', (e)=>{
-      const ds = e.target.value; clearLoggerFor(ds);
-    });
 
-    document.getElementById('btnStartNow').addEventListener('click', ()=>{ document.getElementById('startTime').value = nowHHMM(); computeTotal(); });
-    document.getElementById('btnStopNow').addEventListener('click',  ()=>{ document.getElementById('stopTime').value  = nowHHMM(); computeTotal(); });
-    document.getElementById('btnAddBreak').addEventListener('click', ()=> addBreakRow());
+    function renderLogger(){
+      const dStr = toDateStr(new Date());
+      const dateInput = document.getElementById('logDate');
+      if (!dateInput.value) dateInput.value = dStr; // default to today
+      computeTotal();
+    }
+
+    document.getElementById('btnStartNow').addEventListener('click', ()=>{
+      document.getElementById('startTime').value = nowHHMM(); computeTotal();
+    });
+    document.getElementById('btnStopNow').addEventListener('click', ()=>{
+      document.getElementById('stopTime').value = nowHHMM(); computeTotal();
+    });
+    document.getElementById('btnAddBreak').addEventListener('click', ()=>{
+      addBreakRow();
+    });
     document.getElementById('startTime').addEventListener('input', computeTotal);
     document.getElementById('stopTime').addEventListener('input', computeTotal);
 
     document.getElementById('btnSave').addEventListener('click', ()=>{
-      const ds = document.getElementById('logDate').value || toDateStr(new Date());
+      const dateStr = document.getElementById('logDate').value || toDateStr(new Date());
       const a = document.getElementById('startTime').value.trim();
       const b = document.getElementById('stopTime').value.trim();
-      if (!validTime(a) || !validTime(b)) { alert('Enter both start and stop times'); return; }
-      const net = computeTotal();
-      const breaks=[];
-      document.querySelectorAll('#breaksPane .break-item').forEach(it=>{ breaks.push({ name: it.querySelector('.bi-name').value.trim(), start: it.querySelector('.bi-start').value.trim(), stop: it.querySelector('.bi-stop').value.trim() }); });
-      const holiday = document.getElementById('holidayFlag').checked;
-      state.work[ds] = { start:a, stop:b, breaks, netMins: net, holiday };
-      save(); renderMenu(); renderCalendar(); show('menu');
-    });
-
-    document.getElementById('btnResetWork').addEventListener('click', ()=>{
-      const ds = document.getElementById('logDate').value || toDateStr(new Date());
-      if (state.work[ds]) { delete state.work[ds]; save(); }
-      clearLoggerFor(ds); renderMenu(); renderCalendar();
-    });
-
-    // ---- Compensation ----
-    function renderComp(){
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      if (!document.getElementById('compDate').value) document.getElementById('compDate').value = ds;
-      document.getElementById('compBalance').textContent = "Overtime bank: " + fmtSignedHM(overtimeBank());
-    }
-    function loadCompIntoForm(ds){
-      const c = state.comp[ds];
-      if (c){
-        document.getElementById('compDate').value = ds;
-        document.getElementById('compHours').value = Math.floor((c.mins||0)/60);
-        document.getElementById('compMinutes').value = (c.mins||0)%60;
-        document.getElementById('compNote').value = c.note||'';
-      } else {
-        document.getElementById('compHours').value = 0;
-        document.getElementById('compMinutes').value = 0;
-        document.getElementById('compNote').value = '';
-      }
-    }
-    document.getElementById('btnFullDay').addEventListener('click', ()=>{ document.getElementById('compHours').value = 8; document.getElementById('compMinutes').value = 24; });
-    document.getElementById('btnSaveComp').addEventListener('click', ()=>{
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      const hours = Math.max(0, parseInt(document.getElementById('compHours').value||'0',10));
-      const minutes = Math.max(0, parseInt(document.getElementById('compMinutes').value||'0',10)) % 60;
-      const mins = hours*60 + minutes;
-      const note = document.getElementById('compNote').value.trim();
-      if (!mins){ alert('Enter hours/minutes to compensate'); return; }
-      state.comp[ds] = { mins, note };
-      save(); renderMenu(); renderCalendar(); show('menu');
-    });
-    document.getElementById('btnResetComp').addEventListener('click', ()=>{
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      if (state.comp[ds]) { delete state.comp[ds]; save(); }
-      renderMenu(); renderCalendar(); loadCompIntoForm(ds);
+      if (!validTime(a) || !validTime(b)) { alert('Please enter both start and stop times.'); return; }
+      const netMins = computeTotal();
+      if (netMins <= 0) { alert('Total working time must be positive.'); return; }
+      const hours = +(netMins/60).toFixed(2);
+      state.entries.push({ date: dateStr, hours });
+      save();
+      // Reset inputs for next entry
+      document.getElementById('startTime').value = '';
+      document.getElementById('stopTime').value = '';
+      breaksPane.innerHTML = '';
+      breaksPane.classList.remove('active');
+      document.getElementById('computedTotal').textContent = '0.00 h';
+      // Refresh UI
+      show('menu');
     });
 
     // ---- Boot ----
-    (function boot(){
-      show('menu');
-      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
-    })();
+    renderMenu();
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./service-worker.js'); }
   </script>
 </body>
 </html>
