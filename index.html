@@ -58,13 +58,21 @@
     .cal-title { font-weight: 700; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 8px; }
     .dow { text-align: center; font-size: 12px; color: var(--muted); }
-    .day { border: 1px solid #eee; border-radius: 12px; padding: 8px; min-height: 80px; position: relative; background: #fff; }
+    .day { border: 1px solid #eee; border-radius: 12px; padding: 8px; min-height: 84px; position: relative; background: #fff; display:flex; flex-direction:column; justify-content:space-between; }
     .day .n { position: absolute; top: 6px; left: 6px; font-size: 12px; color: #6b7280; }
-    .day .h { position: absolute; bottom: 6px; right: 6px; font-weight: 700; font-size: 12px; color: #111; }
+    .day .h { position: absolute; bottom: 20px; right: 6px; font-weight: 700; font-size: 12px; color: #111; }
     .day .pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#0f5132; opacity:.9; pointer-events:none;}
     .day.today { outline: 2px solid #111; }
     .legend { display:flex; gap:8px; align-items:center; font-size:12px; color:var(--muted); padding: 0 8px 8px; }
     .cal-footer { display:flex; gap:8px; flex-wrap:wrap; padding: 10px; border-top:1px solid #eee; margin-top:8px; border-radius: 0 0 12px 12px; background:#fff; }
+
+    /* Mini bars inside calendar day */
+    .mini { display:flex; gap:6px; padding-top:4px; }
+    .mini .half { position:relative; flex:1; height:10px; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; background:#f7f7f7; }
+    .mini .fill { position:absolute; top:0; left:0; height:100%; }
+    .mini .green { background:#a7f3d0; }
+    .mini .violet { background:#e9d5ff; }
+    .mini .red { background:#fecaca; }
 
     /* Breaks list */
     .breaks { display: none; margin-top: 10px; }
@@ -80,7 +88,7 @@
     .row { display:flex; gap:8px; flex-wrap:wrap; }
     .chip { border:1px solid #e5e7eb; border-radius:999px; padding:4px 10px; font-size:12px; background:#fff; }
 
-    /* Half-bars for visual */
+    /* Big bars for detail */
     .bars { display:flex; gap:8px; margin-top:10px; }
     .bar { position:relative; flex:1; height:42px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#f7f7f7; }
     .fill { position:absolute; top:0; left:0; height:100%; }
@@ -233,8 +241,8 @@
     // ---- Constants ----
     const TARGET = 504; // fixed daily target = 8h24m
 
-    // ---- Persistence (schema v7) ----
-    const KEY = 'hourlogger.v7';
+    // ---- Persistence (schema v8) ----
+    const KEY = 'hourlogger.v8';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
     // One work session per day
     state.work ||= {}; // { 'YYYY-MM-DD': { start:'HH:MM', stop:'HH:MM', breaks:[{name,start,stop}], netMins:number } }
@@ -250,17 +258,20 @@
     const fmtHM = mins => `${Math.floor(Math.abs(mins)/60)}h ${pad(Math.abs(mins)%60)}m`;
     const fmtSignedHM = mins => (mins<0?'-':'') + fmtHM(mins);
 
-    // ---- Lifetime / monthly helpers ----
-    function dayWorkedMins(ds){ const w = state.work[ds]; return w ? (w.netMins||0) : 0; }
-    function dayOvertimeMins(ds){ const w = dayWorkedMins(ds); return Math.max(0, w - TARGET); } // positive OT from work only
-    function lifetimeWorkedMins(){ return Object.values(state.work).reduce((t,w)=>t+(w.netMins||0),0); }
-    function lifetimeCompMins(){ return Object.values(state.comp).reduce((t,c)=>t+(c.mins||0),0); }
-    function lifetimeOvertimeMins(){ // can be negative
-      const otFromDays = Object.keys(state.work).reduce((t,ds)=>t+dayOvertimeMins(ds),0);
-      return otFromDays - lifetimeCompMins();
+    // ---- Per-day helpers ----
+    function workMins(ds){ return state.work[ds]?.netMins || 0; }
+    function compMins(ds){ return state.comp[ds]?.mins || 0; }
+    function completionPct(ds){ return Math.min(1, (workMins(ds) + compMins(ds)) / TARGET); }
+    function dayOvertimeMins(ds){ return Math.max(0, workMins(ds) + compMins(ds) - TARGET); } // combine work+comp for threshold
+
+    // ---- Lifetime ----
+    function lifetimeOvertimeMins(){ // sum of daily positive OT (from work) minus total compensation; negative allowed
+      const otFromWork = Object.keys(state.work).reduce((t,ds)=> t + Math.max(0, workMins(ds) - TARGET), 0);
+      const totalComp = Object.values(state.comp).reduce((t,c)=> t + (c.mins||0), 0);
+      return otFromWork - totalComp;
     }
     function monthWorkedMins(year, month){
-      let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += dayWorkedMins(toDateStr(d)); return total;
+      let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += workMins(toDateStr(d)); return total;
     }
 
     // ---- View management ----
@@ -278,7 +289,7 @@
     function renderMenu(){
       const now = new Date(); const dStr = toDateStr(now);
       pillToday.textContent = dStr;
-      pillTodayHours.textContent = "Today: " + fmtHM(dayWorkedMins(dStr));
+      pillTodayHours.textContent = "Today: " + fmtHM(workMins(dStr));
       pillLifetimeOT.textContent = "Lifetime overtime: " + fmtSignedHM(lifetimeOvertimeMins());
     }
 
@@ -294,11 +305,23 @@
       for (let i=0;i<42;i++){
         const d = new Date(start); d.setDate(start.getDate()+i); const ds = toDateStr(d);
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
-        const worked = dayWorkedMins(ds); const pct = Math.round(Math.min(100, worked / TARGET * 100));
+        const worked = workMins(ds), comp = compMins(ds); const pct = Math.round(Math.min(100, (worked + comp) / TARGET * 100));
         el.innerHTML = `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
-        const w = state.work[ds]; const c = state.comp[ds];
-        if (w){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(w.netMins); el.appendChild(hh); }
-        else if (c){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='-'+fmtHM(c.mins); el.appendChild(hh); }
+        // mini bars
+        const mini = document.createElement('div'); mini.className='mini';
+        const left = document.createElement('div'); left.className='half';
+        const g = document.createElement('div'); g.className='fill green'; g.style.width = Math.min(100, (worked / TARGET * 100)) + '%';
+        const vioWidth = Math.max(0, Math.min(100, ((worked + comp) / TARGET * 100)) - Math.min(100, (worked / TARGET * 100)));
+        const v = document.createElement('div'); v.className='fill violet'; v.style.left = Math.min(100, (worked / TARGET * 100)) + '%'; v.style.width = vioWidth + '%';
+        left.appendChild(g); left.appendChild(v);
+        const right = document.createElement('div'); right.className='half';
+        const r = document.createElement('div'); r.className='fill red'; r.style.width = Math.min(100, (dayOvertimeMins(ds) / TARGET * 100)) + '%';
+        right.appendChild(r);
+        mini.appendChild(left); mini.appendChild(right);
+        el.appendChild(mini);
+        // corner label
+        if (worked){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(worked); el.appendChild(hh); }
+        else if (comp){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(comp); el.appendChild(hh); }
         el.addEventListener('click', ()=>openDayDrawer(ds)); calGrid.appendChild(el);
       }
       // footer: month hours + lifetime overtime
@@ -310,29 +333,27 @@
 
     function openDayDrawer(ds){
       const w = state.work[ds]; const c = state.comp[ds];
-      // Stats
-      const worked = dayWorkedMins(ds);
-      const completionPct = Math.min(1, worked / TARGET);
+      const worked = workMins(ds);
+      const comp = compMins(ds);
+      const completion = completionPct(ds);
       const dayOT = dayOvertimeMins(ds);
-      const comp = c ? c.mins : 0;
-      // Bars: left = completion (green) or compensation (violet), right = overtime (red)
-      const leftColor = comp ? 'violet' : 'green';
-      const leftPct = comp ? Math.min(1, comp / TARGET) : completionPct;
-      const rightPct = Math.min(1, dayOT / TARGET);
 
       let html = `<div class="row"><strong>${ds}</strong></div>`;
-      // Compact detail card
       html += `<div class="group" style="margin-top:8px">
         <div class="row">
           <div class="chip">Worked: ${fmtHM(worked)}</div>
+          <div class="chip">Comp: ${fmtHM(comp)}</div>
           <div class="chip">Overtime: ${fmtHM(dayOT)}</div>
-          ${comp ? `<div class="chip">Comp: ${fmtHM(comp)}</div>` : ''}
           ${w ? `<div class="chip">Start ${w.start||'-'}</div><div class="chip">Stop ${w.stop||'-'}</div>` : ''}
           ${w && w.breaks?.length ? `<div class="chip">${w.breaks.length} break(s)</div>` : ''}
         </div>
         <div class="bars">
-          <div class="bar"><div class="fill ${leftColor}" style="width:${Math.round(leftPct*100)}%"></div><div class="label">${comp ? fmtHM(comp) : Math.round(completionPct*100) + '%'}</div></div>
-          <div class="bar"><div class="fill red" style="width:${Math.round(rightPct*100)}%"></div><div class="label">${fmtHM(dayOT)}</div></div>
+          <div class="bar" style="position:relative;">
+            <div class="fill green" style="width:${Math.min(100, worked/TARGET*100)}%"></div>
+            <div class="fill violet" style="left:${Math.min(100, worked/TARGET*100)}%; width:${Math.max(0, Math.min(100, (worked+comp)/TARGET*100) - Math.min(100, worked/TARGET*100))}%"></div>
+            <div class="label">${Math.round(completion*100)}%</div>
+          </div>
+          <div class="bar"><div class="fill red" style="width:${Math.min(100, dayOT/TARGET*100)}%"></div><div class="label">${fmtHM(dayOT)}</div></div>
         </div>
         <div class="row" style="margin-top:8px">
           <button class="btn" id="drawerEdit">Edit work</button>
@@ -341,10 +362,10 @@
         </div>
       </div>`;
 
-      dayDrawer.innerHTML = html; dayDrawer.classList.add('active');
+      document.getElementById('dayDrawer').innerHTML = html; document.getElementById('dayDrawer').classList.add('active');
       document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
       document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
-      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); dayDrawer.classList.remove('active'); };
+      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); document.getElementById('dayDrawer').classList.remove('active'); };
     }
 
     document.getElementById('calPrev').addEventListener('click', ()=>{ monthOffset--; renderCalendar(); });
@@ -375,29 +396,30 @@
       row.querySelector('.bi-del').addEventListener('click', ()=>{ row.remove(); if(!breaksPane.querySelector('.break-item')) breaksPane.classList.remove('active'); computeTotal(); });
       computeTotal();
     }
-    function clearLogger(){
+    function clearLoggerFor(ds){
       document.getElementById('startTime').value=''; document.getElementById('stopTime').value='';
       breaksPane.innerHTML=''; breaksPane.classList.remove('active');
       document.getElementById('computedTotal').textContent='0h 00m';
-    }
-    function loadDayIntoLogger(ds){
-      clearLogger();
       const w = state.work[ds];
       if (w){
-        document.getElementById('logDate').value = ds;
         document.getElementById('startTime').value = w.start||'';
         document.getElementById('stopTime').value = w.stop||'';
         (w.breaks||[]).forEach(b=>addBreakRow(b));
         computeTotal();
-      } else {
-        document.getElementById('logDate').value = ds;
       }
+    }
+    function loadDayIntoLogger(ds){
+      document.getElementById('logDate').value = ds;
+      clearLoggerFor(ds);
     }
     function renderLogger(){
       const dateInput = document.getElementById('logDate');
       if (!dateInput.value) dateInput.value = toDateStr(new Date());
-      loadDayIntoLogger(dateInput.value);
+      clearLoggerFor(dateInput.value);
     }
+    document.getElementById('logDate').addEventListener('change', (e)=>{
+      const ds = e.target.value; clearLoggerFor(ds);
+    });
 
     document.getElementById('btnStartNow').addEventListener('click', ()=>{ document.getElementById('startTime').value = nowHHMM(); computeTotal(); });
     document.getElementById('btnStopNow').addEventListener('click',  ()=>{ document.getElementById('stopTime').value  = nowHHMM(); computeTotal(); });
@@ -420,7 +442,7 @@
     document.getElementById('btnResetWork').addEventListener('click', ()=>{
       const ds = document.getElementById('logDate').value || toDateStr(new Date());
       if (state.work[ds]) { delete state.work[ds]; save(); }
-      clearLogger(); renderMenu(); renderCalendar();
+      clearLoggerFor(ds); renderMenu(); renderCalendar();
     });
 
     // ---- Compensation ----
