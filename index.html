@@ -138,7 +138,6 @@
         <div class="spacer"></div>
         <button class="btn" id="calToday">Today</button>
       </div>
-      <!-- agenda/legend removed per request -->
       <div class="cal-grid" id="calDOW"></div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="drawer" id="dayDrawer"></div>
@@ -216,7 +215,6 @@
           <input type="text" id="compNote" placeholder="Doctor, PTO, etc." />
         </div>
       </div>
-      <!-- removed explanatory paragraph per request -->
       <div class="pill" id="compBalance">Overtime bank: 0h 00m</div>
     </div>
     <div class="group">
@@ -231,8 +229,8 @@
     // ---- Constants ----
     const TARGET = 504; // fixed daily target = 8h24m
 
-    // ---- Persistence (schema v10) ----
-    const KEY = 'hourlogger.v10';
+    // ---- Persistence (schema v15) ----
+    const KEY = 'hourlogger.v15';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
     state.work ||= {};    // { 'YYYY-MM-DD': { start, stop, breaks[], netMins, holiday?:true } }
     state.comp ||= {};    // { 'YYYY-MM-DD': { mins, note? } }
@@ -241,57 +239,44 @@
     // ---- Date helpers ----
     const pad = n => String(n).padStart(2,'0');
     const toDateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const fromDateStr = s => { const [y,m,da]=s.split('-').map(Number); return new Date(y, m-1, da); };
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const fmtHM = mins => `${Math.floor(Math.abs(mins)/60)}h ${pad(Math.abs(mins)%60)}m`;
     const fmtSignedHM = mins => (mins<0?'-':'') + fmtHM(mins);
 
-    // ---- Per-day helpers ----
-    function clampPct(n){ n = Number(n); if(!isFinite(n)) return 0; return Math.max(0, Math.min(100, n)); }
-    function pct(val, denom){ if(!denom) return 0; const n = (val/denom)*100; return clampPct(n); }
-
+    // ---- Helpers ----
     function workMins(ds){ return state.work[ds]?.netMins || 0; }
     function compMins(ds){ return state.comp[ds]?.mins || 0; }
     function isHoliday(ds){ return !!state.work[ds]?.holiday; }
     function hasWork(ds){ return !!state.work[ds] && (state.work[ds].start || state.work[ds].stop || (state.work[ds].breaks||[]).length || state.work[ds].netMins>0); }
 
-    // Percentage for left bar: work + comp but capped at 100%
-    function completionPct(ds){
-      const total = workMins(ds) + compMins(ds);
-      return Math.max(0, Math.min(1, total / TARGET));
+    // Applied compensation toward target (prevents violet overflow)
+    function appliedComp(ds){
+      const w = workMins(ds), c = compMins(ds);
+      if (w >= TARGET) return 0;
+      const deficit = TARGET - w;
+      return Math.min(c, deficit);
     }
 
-    // Daily delta for the bank:
-    // - If holiday => 0
-    // - If no work logged => 0 (explicitly requested)
-    // - Else => (work + comp - TARGET)  (can be + or -)
-    function dayBankDelta(ds) {
-  if (isHoliday(ds)) return 0;
+    function completionPct(ds){
+      return Math.max(0, Math.min(1, (workMins(ds) + appliedComp(ds)) / TARGET));
+    }
 
-  const w = workMins(ds);
-  const c = compMins(ds);
-  const hasW = hasWork(ds);
+    // Daily impact on bank per your rules
+    function dayBankDelta(ds){
+      if (isHoliday(ds)) return 0;
+      const w = workMins(ds), c = compMins(ds), hasW = hasWork(ds);
+      if (!hasW && c===0) return 0;          // no logging day → 0
+      if (!hasW && c>0) return -c;           // comp-only day → -comp
+      if (hasW && w >= TARGET) return w - TARGET; // met target on work alone → positive
+      if (hasW && w < TARGET) return -Math.min(c, TARGET - w); // use comp up to deficit only
+      return 0;
+    }
 
-  if (!hasW && c <= 0) {
-    return 0; // no entries → 0
-  }
-  if (!hasW && c > 0) {
-    return -Math.min(c, TARGET); // comp-only day capped to one full target
-  }
-
-  // has work
-  if (w + c >= TARGET) {
-    return w - TARGET; // comp fills the gap, surplus comp ignored
-  }
-  return (w + c) - TARGET; // under target; can be negative
-}
-
-    // Overtime bank = sum of dayBankDelta over all dates
     function overtimeBank(){
       const dates = new Set([...Object.keys(state.work), ...Object.keys(state.comp)]);
       let total = 0;
-      dates.forEach(ds => { total += dayBankDelta(ds); });
+      dates.forEach(ds => total += dayBankDelta(ds));
       return total;
     }
 
@@ -324,6 +309,7 @@
     function renderCalendar(){
       const base = new Date(); base.setMonth(base.getMonth()+monthOffset);
       calTitle.textContent = monthNames[base.getMonth()] + " " + base.getFullYear();
+      // Week headers
       calDOW.innerHTML=''; dows.forEach(d=>{ const el=document.createElement('div'); el.textContent=d; el.className='dow'; calDOW.appendChild(el); });
       calGrid.innerHTML=''; dayDrawer.classList.remove('active');
       const start = startOfMonthWithMondayGrid(base);
@@ -331,60 +317,57 @@
         const d = new Date(start); d.setDate(start.getDate()+i); const ds = toDateStr(d);
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
 
-        // Background big bars (behind date, almost full width)
-        const worked = workMins(ds), comp = compMins(ds);
-        const leftPctWork = clampPct(worked / TARGET * 100);
-        const leftPctComp = clampPct(((worked + comp) / TARGET) * 100 - leftPctWork);
-        const dayDelta = dayBankDelta(ds); // signed
-        const rightPctOT = clampPct(Math.max(0, dayDelta) / TARGET * 100); // only positive shows as red
+        // Background big bars
+        const w = workMins(ds), c = compMins(ds), app = appliedComp(ds);
+        const leftWork = Math.min(100, (w / TARGET) * 100);
+        const leftComp = Math.min(100 - leftWork, (app / TARGET) * 100); // clamp comp to remaining space
+        const delta = dayBankDelta(ds);
+        const rightOT = Math.max(0, delta) / TARGET * 100;
+
         const bars = document.createElement('div'); bars.className='bg-bars';
         const left = document.createElement('div'); left.className='bg-half';
-        const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftPctWork + '%';
-        const fillV = document.createElement('div'); fillV.className='fill violet';
-        fillV.style.left = leftPctWork + '%'; fillV.style.width = leftPctComp + '%';
-        left.appendChild(fillG); if (leftPctComp>0) left.appendChild(fillV);
+        const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftWork + '%';
+        const fillV = document.createElement('div'); fillV.className='fill violet'; fillV.style.left = leftWork + '%'; fillV.style.width = leftComp + '%';
+        left.appendChild(fillG); if (leftComp>0.001) left.appendChild(fillV);
         const right = document.createElement('div'); right.className='bg-half';
-        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = Math.min(100, rightPctOT) + '%';
-        if (rightPctOT>0) right.appendChild(fillR);
+        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = Math.min(100, rightOT) + '%';
+        if (rightOT>0.001) right.appendChild(fillR);
         bars.appendChild(left); bars.appendChild(right);
         el.appendChild(bars);
 
         // Foreground labels
         const pct = Math.round(completionPct(ds) * 100);
         el.innerHTML += `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
-        // Corner values: show work or +comp if only comp
-        if (worked){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(worked); el.appendChild(hh); }
-        else if (comp){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(comp); el.appendChild(hh); }
+        if (w){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(w); el.appendChild(hh); }
+        else if (c){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(c); el.appendChild(hh); }
 
         el.addEventListener('click', ()=>openDayDrawer(ds)); calGrid.appendChild(el);
       }
-      // footer: month hours + overtime bank
+      // footer: month hours + bank
       const totalH = fmtHM(monthWorkedMins(base.getFullYear(), base.getMonth()));
       const bank = fmtSignedHM(overtimeBank());
       calFooter.innerHTML = `<strong>Month hours:</strong> ${totalH} · <strong>Overtime bank:</strong> ${bank}`;
     }
 
     function openDayDrawer(ds){
-      const w = state.work[ds]; const c = state.comp[ds];
-      const worked = workMins(ds);
-      const comp = compMins(ds);
-      const completion = completionPct(ds);
+      const w = workMins(ds), c = compMins(ds), app = appliedComp(ds);
+      const pct = completionPct(ds);
       const delta = dayBankDelta(ds);
 
       let html = `<div class="muted" style="margin-bottom:6px"><strong>${ds}</strong>${isHoliday(ds)?' • Public holiday':''}</div>`;
       html += `<div class="group" style="margin-top:0">
         <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
-          <div class="pill">Worked: ${fmtHM(worked)}</div>
-          <div class="pill">Comp: ${fmtHM(comp)}</div>
+          <div class="pill">Worked: ${fmtHM(w)}</div>
+          <div class="pill">Comp (applied): ${fmtHM(app)}${c>app?` (+${fmtHM(c-app)} untouched)`:''}</div>
           <div class="pill">Day impact: ${fmtSignedHM(delta)}</div>
         </div>
         <div class="bars" style="display:flex; gap:8px; margin-top:10px;">
-          <div class="bar" style="position:relative;">
-            \1\" + clampPct(worked/TARGET*100) + \2
-            \1\" + clampPct(worked/TARGET*100) + \2\" + clampPct(((worked+comp)/TARGET*100) - clampPct(worked/TARGET*100)) + \3
-            <div class="label">${Math.round(completion*100)}%</div>
+          <div class="bar" style="position:relative; overflow:hidden;">
+            <div class="fill green" style="width:${Math.min(100, w/TARGET*100)}%"></div>
+            <div class="fill violet" style="left:${Math.min(100, w/TARGET*100)}%; width:${Math.min(100 - Math.min(100, w/TARGET*100), app/TARGET*100)}%"></div>
+            <div class="label">${Math.round(pct*100)}%</div>
           </div>
-          <div class="bar">\1\" + clampPct(Math.max(0, delta)/TARGET*100) + \2<div class="label">${fmtSignedHM(delta)}</div></div>
+          <div class="bar" style="overflow:hidden;"><div class="fill red" style="width:${Math.min(100, Math.max(0, delta)/TARGET*100)}%"></div><div class="label">${fmtSignedHM(delta)}</div></div>
         </div>
         <div class="row" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn" id="drawerEdit">Edit work</button>
@@ -393,18 +376,19 @@
         </div>
       </div>`;
 
-      dayDrawer.innerHTML = html; dayDrawer.classList.add('active');
+      const drawer = document.getElementById('dayDrawer');
+      drawer.innerHTML = html; drawer.classList.add('active');
       document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
       document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
-      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); dayDrawer.classList.remove('active'); };
+      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); drawer.classList.remove('active'); };
     }
 
     document.getElementById('calPrev').addEventListener('click', ()=>{ monthOffset--; renderCalendar(); });
     document.getElementById('calNext').addEventListener('click', ()=>{ monthOffset++; renderCalendar(); });
     document.getElementById('calToday').addEventListener('click', ()=>{ monthOffset=0; renderCalendar(); });
 
-    // ---- Logger with breaks (one session/day) ----
-    function nowHHMM(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; }
+    // ---- Logger (one session/day) ----
+    function nowHHMM(){ const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
     function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60 + m; }
     function validTime(t){ return /^\d{2}:\d{2}$/.test(t); }
     const breaksPane = document.getElementById('breaksPane');
