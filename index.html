@@ -88,11 +88,6 @@
     .green { background:#a7f3d0; }
     .red { background:#fecaca; }
     .violet { background:#e9d5ff; }
-
-    /* Logger existing summary */
-    .info { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; border-radius:12px; padding:8px 10px; font-size:13px; }
-    .sessions { margin-top:8px; }
-    .session { font-size:12px; color:#374151; border:1px dashed #e5e7eb; border-radius:8px; padding:6px 8px; margin-top:6px; }
   </style>
 </head>
 <body>
@@ -109,8 +104,7 @@
 
     <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <span class="pill" id="pillTodayHours">Today: 0h 00m</span>
-      <span class="pill" id="pillMonthHours">This month: 0h 00m</span>
-      <span class="pill" id="pillOT">Overtime: 0h 00m</span>
+      <span class="pill" id="pillLifetimeOT">Lifetime overtime: 0h 00m</span>
     </div>
 
     <div class="cards">
@@ -151,7 +145,7 @@
         <button class="btn" id="calToday">Today</button>
       </div>
       <div class="legend">
-        <span class="chip" id="legendOT">Overtime month: 0h 00m</span>
+        <span class="chip" id="legendOT">Lifetime overtime: 0h 00m</span>
       </div>
       <div class="cal-grid" id="calDOW"></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -192,11 +186,9 @@
 
     <div class="group">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnSave">Save (adds to this day)</button>
+        <button class="btn primary" id="btnSave">Save day</button>
         <button class="btn danger" id="btnResetWork">Reset this day</button>
       </div>
-      <div class="info" id="existingInfo" style="display:none; margin-top:8px;"></div>
-      <div class="sessions" id="sessionsList"></div>
     </div>
   </section>
 
@@ -226,8 +218,8 @@
           <input type="text" id="compNote" placeholder="Doctor, PTO, etc." />
         </div>
       </div>
-      <p class="muted" style="margin-top:8px">This subtracts from your overtime (does not count as worked hours).</p>
-      <div class="pill" id="compBalance">Overtime balance: 0h 00m</div>
+      <p class="muted" style="margin-top:8px">This subtracts from your lifetime overtime (does not count as worked hours).</p>
+      <div class="pill" id="compBalance">Lifetime overtime: 0h 00m</div>
     </div>
     <div class="group">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -241,10 +233,11 @@
     // ---- Constants ----
     const TARGET = 504; // fixed daily target = 8h24m
 
-    // ---- Persistence (schema v6) ----
-    const KEY = 'hourlogger.v6';
+    // ---- Persistence (schema v7) ----
+    const KEY = 'hourlogger.v7';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
-    state.work ||= {}; // { 'YYYY-MM-DD': { totalMins:number, sessions:[{start,stop,breaks,netMins}] } }
+    // One work session per day
+    state.work ||= {}; // { 'YYYY-MM-DD': { start:'HH:MM', stop:'HH:MM', breaks:[{name,start,stop}], netMins:number } }
     state.comp ||= {}; // { 'YYYY-MM-DD': { mins:number, note?:string } }
     function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -254,7 +247,21 @@
     const fromDateStr = s => { const [y,m,da]=s.split('-').map(Number); return new Date(y, m-1, da); };
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const fmtHM = mins => `${Math.floor(mins/60)}h ${pad(mins%60)}m`;
+    const fmtHM = mins => `${Math.floor(Math.abs(mins)/60)}h ${pad(Math.abs(mins)%60)}m`;
+    const fmtSignedHM = mins => (mins<0?'-':'') + fmtHM(mins);
+
+    // ---- Lifetime / monthly helpers ----
+    function dayWorkedMins(ds){ const w = state.work[ds]; return w ? (w.netMins||0) : 0; }
+    function dayOvertimeMins(ds){ const w = dayWorkedMins(ds); return Math.max(0, w - TARGET); } // positive OT from work only
+    function lifetimeWorkedMins(){ return Object.values(state.work).reduce((t,w)=>t+(w.netMins||0),0); }
+    function lifetimeCompMins(){ return Object.values(state.comp).reduce((t,c)=>t+(c.mins||0),0); }
+    function lifetimeOvertimeMins(){ // can be negative
+      const otFromDays = Object.keys(state.work).reduce((t,ds)=>t+dayOvertimeMins(ds),0);
+      return otFromDays - lifetimeCompMins();
+    }
+    function monthWorkedMins(year, month){
+      let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += dayWorkedMins(toDateStr(d)); return total;
+    }
 
     // ---- View management ----
     const views = { menu: document.getElementById('view-menu'), calendar: document.getElementById('view-calendar'), logger: document.getElementById('view-logger'), comp: document.getElementById('view-comp') };
@@ -262,14 +269,8 @@
     function show(name){ Object.values(views).forEach(v=>v.classList.remove('active')); views[name].classList.add('active'); btnBack.style.visibility = (name==='menu') ? 'hidden' : 'visible'; if (name==='menu') renderMenu(); if (name==='calendar') renderCalendar(); if (name==='logger') renderLogger(); if (name==='comp') renderComp(); }
     btnBack.addEventListener('click', ()=>show('menu'));
 
-    // ---- Helpers for totals/overtime ----
-    function dayWorkedMins(ds){ const w = state.work[ds]; return w ? (w.totalMins||0) : 0; }
-    function dayOvertimeMins(ds){ const w = dayWorkedMins(ds); return Math.max(0, w - TARGET); } // positive OT only
-    function monthWorkedMins(year, month){ let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += dayWorkedMins(toDateStr(d)); return total; }
-    function monthOvertimeMins(year, month){ let ot=0, comp=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)){ const ds=toDateStr(d); ot += dayOvertimeMins(ds); if (state.comp[ds]) comp += (state.comp[ds].mins||0); } return ot - comp; }
-
     // ---- Menu ----
-    const pillToday = document.getElementById('pillToday'), pillTodayHours = document.getElementById('pillTodayHours'), pillMonthHours = document.getElementById('pillMonthHours'), pillOT = document.getElementById('pillOT');
+    const pillToday = document.getElementById('pillToday'), pillTodayHours = document.getElementById('pillTodayHours'), pillLifetimeOT = document.getElementById('pillLifetimeOT');
     document.getElementById('goCalendar').addEventListener('click', ()=>show('calendar'));
     document.getElementById('goLogger').addEventListener('click', ()=>show('logger'));
     document.getElementById('goComp').addEventListener('click', ()=>show('comp'));
@@ -278,8 +279,7 @@
       const now = new Date(); const dStr = toDateStr(now);
       pillToday.textContent = dStr;
       pillTodayHours.textContent = "Today: " + fmtHM(dayWorkedMins(dStr));
-      pillMonthHours.textContent = "This month: " + fmtHM(monthWorkedMins(now.getFullYear(), now.getMonth()));
-      pillOT.textContent = "Overtime: " + fmtHM(Math.max(0, monthOvertimeMins(now.getFullYear(), now.getMonth())));
+      pillLifetimeOT.textContent = "Lifetime overtime: " + fmtSignedHM(lifetimeOvertimeMins());
     }
 
     // ---- Calendar ----
@@ -297,15 +297,15 @@
         const worked = dayWorkedMins(ds); const pct = Math.round(Math.min(100, worked / TARGET * 100));
         el.innerHTML = `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
         const w = state.work[ds]; const c = state.comp[ds];
-        if (w){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(w.totalMins); el.appendChild(hh); }
+        if (w){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(w.netMins); el.appendChild(hh); }
         else if (c){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='-'+fmtHM(c.mins); el.appendChild(hh); }
         el.addEventListener('click', ()=>openDayDrawer(ds)); calGrid.appendChild(el);
       }
-      // footer totals
+      // footer: month hours + lifetime overtime
       const totalH = fmtHM(monthWorkedMins(base.getFullYear(), base.getMonth()));
-      const totalOT = fmtHM(Math.max(0, monthOvertimeMins(base.getFullYear(), base.getMonth())));
-      calFooter.innerHTML = `<strong>Month totals:</strong> Hours ${totalH} · Overtime ${totalOT}`;
-      document.getElementById('legendOT').textContent = "Overtime month: " + totalOT;
+      const lifeOT = fmtSignedHM(lifetimeOvertimeMins());
+      calFooter.innerHTML = `<strong>Month hours:</strong> ${totalH} · <strong>Lifetime overtime:</strong> ${lifeOT}`;
+      document.getElementById('legendOT').textContent = "Lifetime overtime: " + lifeOT;
     }
 
     function openDayDrawer(ds){
@@ -327,28 +327,22 @@
           <div class="chip">Worked: ${fmtHM(worked)}</div>
           <div class="chip">Overtime: ${fmtHM(dayOT)}</div>
           ${comp ? `<div class="chip">Comp: ${fmtHM(comp)}</div>` : ''}
-          ${w && w.sessions?.length ? `<div class="chip">${w.sessions.length} session(s)</div>` : ''}
+          ${w ? `<div class="chip">Start ${w.start||'-'}</div><div class="chip">Stop ${w.stop||'-'}</div>` : ''}
+          ${w && w.breaks?.length ? `<div class="chip">${w.breaks.length} break(s)</div>` : ''}
         </div>
         <div class="bars">
           <div class="bar"><div class="fill ${leftColor}" style="width:${Math.round(leftPct*100)}%"></div><div class="label">${comp ? fmtHM(comp) : Math.round(completionPct*100) + '%'}</div></div>
           <div class="bar"><div class="fill red" style="width:${Math.round(rightPct*100)}%"></div><div class="label">${fmtHM(dayOT)}</div></div>
         </div>
         <div class="row" style="margin-top:8px">
-          <button class="btn" id="drawerEdit">Edit / add work</button>
+          <button class="btn" id="drawerEdit">Edit work</button>
           <button class="btn" id="drawerEditComp">Edit compensation</button>
           <button class="btn danger" id="drawerReset">Reset this day</button>
         </div>
       </div>`;
 
-      if (w && w.sessions?.length){
-        html += `<div class="muted" style="margin-top:8px">Sessions</div>`;
-        w.sessions.forEach((s,i)=>{
-          html += `<div class="row"><div class="chip">#${i+1} ${s.start||'--:--'} → ${s.stop||'--:--'}</div><div class="chip">${fmtHM(s.netMins||0)}</div>${s.breaks?.length?`<div class="chip">${s.breaks.length} break(s)</div>`:''}</div>`;
-        });
-      }
-
       dayDrawer.innerHTML = html; dayDrawer.classList.add('active');
-      document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; show('logger'); renderLogger(); };
+      document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
       document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
       document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); dayDrawer.classList.remove('active'); };
     }
@@ -357,13 +351,11 @@
     document.getElementById('calNext').addEventListener('click', ()=>{ monthOffset++; renderCalendar(); });
     document.getElementById('calToday').addEventListener('click', ()=>{ monthOffset=0; renderCalendar(); });
 
-    // ---- Logger with breaks ----
+    // ---- Logger with breaks (one session/day) ----
     function nowHHMM(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; }
     function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60 + m; }
     function validTime(t){ return /^\d{2}:\d{2}$/.test(t); }
     const breaksPane = document.getElementById('breaksPane');
-    const existingInfo = document.getElementById('existingInfo');
-    const sessionsList = document.getElementById('sessionsList');
 
     function computeTotal(){
       const a = document.getElementById('startTime').value.trim(); const b = document.getElementById('stopTime').value.trim();
@@ -383,22 +375,29 @@
       row.querySelector('.bi-del').addEventListener('click', ()=>{ row.remove(); if(!breaksPane.querySelector('.break-item')) breaksPane.classList.remove('active'); computeTotal(); });
       computeTotal();
     }
-    function clearLogger(){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; breaksPane.classList.remove('active'); document.getElementById('computedTotal').textContent='0h 00m'; sessionsList.innerHTML=''; existingInfo.style.display='none'; }
-    function renderExisting(ds){
-      const w = state.work[ds];
-      if (!w) return;
-      existingInfo.style.display='block';
-      existingInfo.textContent = `Already logged for this day: ${fmtHM(w.totalMins)} (saving will ADD to this)`;
-      sessionsList.innerHTML='';
-      (w.sessions||[]).forEach((s,i)=>{
-        const div = document.createElement('div'); div.className='session'; div.textContent = `#${i+1} ${s.start||'--:--'} → ${s.stop||'--:--'} • ${fmtHM(s.netMins||0)}${s.breaks?.length?` • ${s.breaks.length} break(s)`:''}`;
-        sessionsList.appendChild(div);
-      });
+    function clearLogger(){
+      document.getElementById('startTime').value=''; document.getElementById('stopTime').value='';
+      breaksPane.innerHTML=''; breaksPane.classList.remove('active');
+      document.getElementById('computedTotal').textContent='0h 00m';
     }
     function loadDayIntoLogger(ds){
-      clearLogger(); document.getElementById('logDate').value = ds; renderExisting(ds);
+      clearLogger();
+      const w = state.work[ds];
+      if (w){
+        document.getElementById('logDate').value = ds;
+        document.getElementById('startTime').value = w.start||'';
+        document.getElementById('stopTime').value = w.stop||'';
+        (w.breaks||[]).forEach(b=>addBreakRow(b));
+        computeTotal();
+      } else {
+        document.getElementById('logDate').value = ds;
+      }
     }
-    function renderLogger(){ const dateInput=document.getElementById('logDate'); if(!dateInput.value) dateInput.value = toDateStr(new Date()); renderExisting(dateInput.value); }
+    function renderLogger(){
+      const dateInput = document.getElementById('logDate');
+      if (!dateInput.value) dateInput.value = toDateStr(new Date());
+      loadDayIntoLogger(dateInput.value);
+    }
 
     document.getElementById('btnStartNow').addEventListener('click', ()=>{ document.getElementById('startTime').value = nowHHMM(); computeTotal(); });
     document.getElementById('btnStopNow').addEventListener('click',  ()=>{ document.getElementById('stopTime').value  = nowHHMM(); computeTotal(); });
@@ -407,17 +406,14 @@
     document.getElementById('stopTime').addEventListener('input', computeTotal);
 
     document.getElementById('btnSave').addEventListener('click', ()=>{
-      const dateStr = document.getElementById('logDate').value || toDateStr(new Date());
+      const ds = document.getElementById('logDate').value || toDateStr(new Date());
       const a = document.getElementById('startTime').value.trim();
       const b = document.getElementById('stopTime').value.trim();
       if (!validTime(a) || !validTime(b)) { alert('Enter both start and stop times'); return; }
       const net = computeTotal();
       const breaks=[];
       breaksPane.querySelectorAll('.break-item').forEach(it=>{ breaks.push({ name: it.querySelector('.bi-name').value.trim(), start: it.querySelector('.bi-start').value.trim(), stop: it.querySelector('.bi-stop').value.trim() }); });
-      const session = { start:a, stop:b, breaks, netMins: net };
-      if (!state.work[dateStr]) state.work[dateStr] = { totalMins: 0, sessions: [] };
-      state.work[dateStr].totalMins += net;
-      state.work[dateStr].sessions.push(session);
+      state.work[ds] = { start:a, stop:b, breaks, netMins: net };
       save(); renderMenu(); renderCalendar(); show('menu');
     });
 
@@ -431,8 +427,7 @@
     function renderComp(){
       const ds = document.getElementById('compDate').value || toDateStr(new Date());
       if (!document.getElementById('compDate').value) document.getElementById('compDate').value = ds;
-      const now = new Date(); const bal = monthOvertimeMins(now.getFullYear(), now.getMonth());
-      document.getElementById('compBalance').textContent = "Overtime balance: " + fmtHM(Math.max(0, bal));
+      document.getElementById('compBalance').textContent = "Lifetime overtime: " + fmtSignedHM(lifetimeOvertimeMins());
     }
     function loadCompIntoForm(ds){
       const c = state.comp[ds];
@@ -455,9 +450,7 @@
       const mins = hours*60 + minutes;
       const note = document.getElementById('compNote').value.trim();
       if (!mins){ alert('Enter hours/minutes to compensate'); return; }
-      if (!state.comp[ds]) state.comp[ds] = { mins:0, note:'' };
-      state.comp[ds].mins += mins;
-      if (note) state.comp[ds].note = note;
+      state.comp[ds] = { mins, note };
       save(); renderMenu(); renderCalendar(); show('menu');
     });
     document.getElementById('btnResetComp').addEventListener('click', ()=>{
