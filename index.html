@@ -180,7 +180,7 @@
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.v22.5.1'; const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {}; const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
+    const TARGET=504, KEY='hourlogger.v22.5.2'; const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {}; const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0'); const toDateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; const startOfWeekMon=d=>{const x=new Date(d);const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);x.setHours(0,0,0,0);return x}; const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
     const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const fmtHM=m=>`${Math.floor(Math.abs(m)/60)}h ${String(Math.abs(m)%60).padStart(2,'0')}m`; const fmtSignedHM=m=>(m<0?'-':'')+fmtHM(m);
     const workMins=ds=>state.work[ds]?.netMins||0; const compMins=ds=>state.comp[ds]?.mins||0; const isHoliday=ds=>!!state.work[ds]?.holiday;
@@ -244,12 +244,11 @@
         t += 0.016;
         ctx.clearRect(0,0,w,h);
         const half = h*0.5;
-        const showSand = overtime<=0;
-        const sandH = showSand ? Math.min(half, half * (worked / 504)) : 0;
-        const compH = Math.min(half - sandH, half * (compUsed / 504));
+        const sandH = Math.min(half, half * (worked / 504));
+        const compH = Math.min(Math.max(0, half - sandH), half * (compUsed / 504));
         const overH = Math.min(half, half * (Math.max(0,overtime) / 504));
 
-        if (showSand && sandH>0){
+        if (sandH>0){
           const topY = h - sandH;
           const grd = ctx.createLinearGradient(0, topY, 0, h); grd.addColorStop(0,'#daca9b'); grd.addColorStop(1,'#b8965b');
           ctx.fillStyle = grd; ctx.fillRect(0, topY, w, h-topY);
