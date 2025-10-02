@@ -1,480 +1,419 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Hour Logger</title>
-
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon-192.png">
-
   <style>
-    :root { --pad: 16px; --radius: 16px; --bg: #fafafa; --card: #ffffff; --muted: #6b7280; --text: #111827; }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    :root { --pad:16px; --bg:#0b0c0f; --card:#111319; --muted:#9aa3b2; --text:#e8ebf0; --stroke:#1c2030; --pill:#151823; --glow:0 0 32px rgba(91,140,255,.08);
+      --green:#34d399; --red:#f87171; --violet:#c084fc; }
+    [data-theme="light"] { --bg:#f7f7fb; --card:#ffffff; --muted:#667084; --text:#101828; --stroke:#e5e7eb; --pill:#eef1f5; --glow:0 0 0 rgba(0,0,0,0); }
+    [data-theme="dark"]  { --bg:#0b0c0f; --card:#111319; --muted:#9aa3b2; --text:#e8ebf0; --stroke:#1c2030; --pill:#151823; --glow:0 0 32px rgba(91,140,255,.08); }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);position:relative}
+    #fxCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(10px)}
+    .fx-top{position:relative;z-index:1}
+    .topbar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px var(--pad);background:#0f1118aa;border-bottom:1px solid var(--stroke);backdrop-filter:saturate(180%) blur(8px);z-index:10}
+    .title{font-weight:800; font-size:18px; text-align:center; flex:1}
+    .btn{border:1px solid var(--stroke);background:#181b24;color:var(--text);border-radius:12px;padding:10px 14px;box-shadow:var(--glow)}
+    .icon-btn{border:1px solid var(--stroke);background:#181b24;border-radius:12px;padding:10px;display:grid;place-items:center; width:40px; height:40px}
+    .menu-dd{ position:absolute; top:56px; left:10px; background:var(--card); border:1px solid var(--stroke); border-radius:12px; padding:8px; display:none; box-shadow:0 24px 80px #0006 }
+    .menu-dd.show{ display:block; }
+    .menu-dd button{ display:block; width:100%; margin:4px 0; }
 
-    .topbar { position: sticky; top: 0; display: flex; align-items: center; gap: 8px; padding: 12px var(--pad); background: #fff; border-bottom: 1px solid #eee; z-index: 10; }
-    .back { border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; padding: 8px 12px; font-size: 14px; }
-    .title { font-weight: 700; font-size: 18px; margin-left: 4px; }
-    .spacer { flex: 1; }
-    .pill { display: inline-block; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 999px; font-size: 12px; color: #374151; background: #fff; }
+    .view{display:none;padding:12px var(--pad);position:relative;z-index:1}
+    .view.active{display:block;animation:fade .3s ease both}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .hero{min-height:110px;border:1px solid var(--stroke);border-radius:22px;display:grid;place-items:center;background:radial-gradient(120% 120% at 10% 0%,rgba(91,140,255,.14),transparent 60%),radial-gradient(120% 120% at 90% 100%,rgba(192,132,252,.16),transparent 60%),var(--card);box-shadow:var(--glow)}
+    .cards{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;box-shadow:var(--glow)}
+    .card h3{margin:0;font-size:16px}
+    .card p{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--stroke);border-radius:999px;font-size:12px;color:var(--muted);background:var(--pill);box-shadow:var(--glow)}
 
-    .view { display: none; padding: var(--pad); }
-    .view.active { display: block; }
+    .week-card{ background:var(--card); border:1px solid var(--stroke); border-radius:16px; padding:12px; box-shadow:var(--glow); }
+    .week-head{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:8px; }
+    .week-title{ font-weight:800; font-size:22px; }
+    .week-nav{ display:flex; gap:8px; }
+    .week-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(120px,1fr);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:10px 2px 10px}
+    .day{position:relative;background:var(--card);border:1px solid var(--stroke);border-radius:18px;min-height:140px;overflow:hidden;scroll-snap-align:start;box-shadow:var(--glow)}
+    .day.today{outline:2px solid #5b8cff;outline-offset:-2px}
+    .day .n{position:absolute;top:10px;left:12px;font-size:12px;font-weight:700;z-index:2;text-shadow:0 2px 6px #0008}
+    .day .h{position:absolute;bottom:10px;right:12px;font-weight:700;font-size:12px;z-index:2;text-shadow:0 2px 6px #0008}
+    .day .pct{position:absolute;bottom:10px;left:12px;font-weight:700;font-size:12px;z-index:2;opacity:.9;text-shadow:0 2px 6px #0008}
+    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none }
 
-    .hero { position: relative; min-height: 140px; border-radius: 24px; overflow: hidden; background: radial-gradient(80% 80% at 50% 30%, #eef6ff, #fff); border: 1px solid #eef2f7; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: flex; align-items: center; justify-content: center; }
-    .hero::after { content: ""; position: absolute; inset: 0; background-image: url('icon-512.png'); background-size: 50%; background-position: center; background-repeat: no-repeat; opacity: .06; }
-    .hero h1 { position: relative; z-index: 1; font-size: 24px; margin: 0; }
+    .cal-footer{display:flex;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--stroke);margin-top:8px}
 
-    .cards { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
-    .card { background: var(--card); border: 1px solid #eee; border-radius: 18px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-    .card h3 { margin: 0; font-size: 18px; }
-    .card p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-    .card button { margin-left: auto; border: 1px solid #111; background: #111; color: #fff; border-radius: 12px; padding: 10px 14px; }
-
-    .group { background: var(--card); border: 1px solid #eee; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
-    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-    input[type="time"], input[type="date"], input[type="text"], input[type="number"] { width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; font-size: 16px; }
-    .btn { border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 15px; }
-    .btn.primary { background: #111; border-color: #111; color: #fff; }
-    .btn.danger { border-color: #ef4444; color: #ef4444; }
-
-    .logger-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .logger-grid > div { align-self: flex-start; }
-    .center { text-align:center; }
-    @media (min-width: 520px) { .logger-grid { grid-template-columns: 1fr auto 1fr; align-items: start; } }
-
-    .cal-wrap { background: var(--card); border: 1px solid #eee; border-radius: 16px; padding: 10px; }
-    .cal-head { display: flex; align-items: center; gap: 8px; padding: 8px; flex-wrap: wrap; }
-    .cal-title { font-weight: 700; }
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 8px; }
-    .dow { text-align: center; font-size: 12px; color: var(--muted); }
-    .day { border: 1px solid #eee; border-radius: 12px; padding: 8px; min-height: 90px; position: relative; background: #fff; overflow:hidden; }
-    .day .n { position: absolute; top: 6px; left: 6px; font-size: 12px; color: #111; font-weight:700; z-index:2; }
-    .day .h { position: absolute; bottom: 6px; right: 6px; font-weight: 700; font-size: 12px; color: #111; z-index:2; }
-    .day .pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#0f5132; opacity:.95; pointer-events:none; z-index:2; }
-    .day.today { outline: 2px solid #111; }
-    .cal-footer { display:flex; gap:8px; flex-wrap:wrap; padding: 10px; border-top:1px solid #eee; margin-top:8px; border-radius: 0 0 12px 12px; background:#fff; }
-
-    .bg-bars { position:absolute; left:4px; right:4px; top:22px; height:58px; display:flex; gap:6px; z-index:1; }
-    .bg-half { position:relative; flex:1; border-radius:10px; background:#f7f7f7; border:1px solid #e5e7eb; overflow:hidden; }
-    .fill { position:absolute; top:0; left:0; height:100%; max-width:100%; }
-    .green { background:#a7f3d0; }
-    .red { background:#fecaca; }
-    .violet { background:#e9d5ff; }
-
-    #breaksPane { max-height: 220px; overflow:auto; padding-right:4px; }
-    .breaks.active { display:block; }
-    .break-item { display:grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap:6px; align-items:end; margin-bottom:6px; }
-    .break-item small { color: var(--muted); display:block; margin-bottom:4px; }
-
-    .muted { color: var(--muted); font-size: 13px; }
-    .total { display:flex; justify-content:space-between; align-items:center; padding-top:6px; }
-
-    .drawer { margin-top: 10px; background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; display:none; }
-    .drawer.active { display:block; }
-
-    .bars { display:flex; gap:8px; margin-top:10px; }
-    .bar { position:relative; flex:1; height:42px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#f7f7f7; }
-    .label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#111; text-shadow:0 1px 0 rgba(255,255,255,.6); }
+    /* Focus + bubble */
+    .focus-layer{position:fixed;inset:0;display:none;z-index:50}
+    .focus-layer.active{display:block}
+    .backdrop{position:absolute;inset:0;background:#0006;backdrop-filter:blur(10px) saturate(120%)}
+    .bubble-date{ position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 0; right: 0; text-align:center; font-weight:800; z-index:52 }
+    .bubble{position:fixed;border-radius:18px;background:radial-gradient(120% 140% at 20% 10%,rgba(255,255,255,.08),transparent 60%),var(--card);border:1px solid var(--stroke);box-shadow:0 40px 120px #0006,0 0 80px rgba(91,140,255,.15);overflow:hidden;animation:gel .7s cubic-bezier(.2,.8,.2,1) both; z-index:52 }
+    @keyframes gel{0%{filter:saturate(.9) blur(.35px)}40%{filter:saturate(1.05) blur(.2px)}100%{filter:saturate(1) blur(0)}}
+    .bubble canvas{ position:absolute; inset:0; width:100%; height:100%; }
+    .options{position:fixed; display:grid; gap:8px; padding:10px 16px; left: 0; right: 0; z-index:53 }
+    .opt-btn{border:1px solid var(--stroke);background:#141824;color:var(--text);border-radius:14px;padding:12px 14px;box-shadow:var(--glow);opacity:0;transform:translateY(8px);animation:pop .5s ease forwards}
+    .opt-btn:nth-child(1){animation-delay:.12s}.opt-btn:nth-child(2){animation-delay:.2s}
+    @keyframes pop{to{opacity:1;transform:none}}
+    .details{ position:fixed; left:16px; right:16px; background:var(--card); border:1px solid var(--stroke); border-radius:14px; padding:12px; box-shadow:var(--glow); z-index:53 }
+    .details h4{ margin:0 0 6px 0; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; justify-content:space-between; }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <button class="back" id="btnBack" style="visibility:hidden">◀︎ Back</button>
+  <canvas id="fxCanvas"></canvas>
+
+  <div class="topbar fx-top">
+    <button class="icon-btn" id="btnMenu" aria-label="Menu">☰</button>
     <div class="title">Hour Logger</div>
-    <div class="spacer"></div>
-    <span class="pill" id="pillToday">—</span>
+    <div style="width:40px"></div>
+    <div class="menu-dd" id="menuDD">
+      <button class="btn" id="mLight">Light</button>
+      <button class="btn" id="mDark">Dark</button>
+    </div>
   </div>
 
-  <section id="view-menu" class="view active">
+  <!-- MENU -->
+  <section id="view-menu" class="view active fx-top">
     <div class="hero"><h1>Track your day</h1></div>
-    <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <span class="pill" id="pillTodayHours">Today: 0h 00m</span>
-      <span class="pill" id="pillBank">Overtime bank: 0h 00m</span>
-    </div>
     <div class="cards">
+      <div class="pill" id="pillWeek">Weekly hours: 0h 00m</div>
+      <div class="pill" id="pillBank">Overtime bank: 0h 00m</div>
       <div class="card">
-        <div>
-          <h3 id="todayCardTitle">Today’s logging</h3>
-          <p>Working time (-breaks), start / stop, breaks, save.</p>
-        </div>
-        <button id="goLogger">Open</button>
+        <div><h3>Today’s logging</h3><p>Working time (-breaks), start/stop, breaks, save.</p></div>
+        <button class="btn" id="goLogger">Open</button>
       </div>
       <div class="card">
-        <div>
-          <h3>Calendar</h3>
-          <p>See/edit any day’s details.</p>
-        </div>
-        <button id="goCalendar">Open</button>
+        <div><h3>Calendar (weekly)</h3><p>Tap a day for actions.</p></div>
+        <button class="btn" id="goCalendar">Open</button>
       </div>
       <div class="card">
-        <div>
-          <h3>Compensate overtime</h3>
-          <p>Reduce the bank by logging compensation.</p>
-        </div>
-        <button id="goComp">Add</button>
+        <div><h3>Compensate overtime</h3><p>Reduce the bank by logging compensation.</p></div>
+        <button class="btn" id="goComp">Add</button>
       </div>
     </div>
   </section>
 
-  <section id="view-calendar" class="view">
-    <div class="cal-wrap">
-      <div class="cal-head">
-        <button class="btn" id="calPrev">◀︎</button>
-        <div class="cal-title" id="calTitle">Month YYYY</div>
-        <button class="btn" id="calNext">▶︎</button>
-        <div class="spacer"></div>
-        <button class="btn" id="calToday">Today</button>
+  <!-- CALENDAR -->
+  <section id="view-calendar" class="view fx-top">
+    <div class="week-card">
+      <div class="week-head">
+        <div class="week-title" id="wTitle">—</div>
+        <div class="week-nav">
+          <button class="btn" id="wPrev">◀︎</button>
+          <button class="btn" id="wToday">Today</button>
+          <button class="btn" id="wNext">▶︎</button>
+        </div>
       </div>
-      <div class="cal-grid" id="calDOW"></div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div class="drawer" id="dayDrawer"></div>
+      <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
   </section>
 
-  <section id="view-logger" class="view">
-    <div class="group">
+  <!-- LOGGER -->
+  <section id="view-logger" class="view fx-top">
+    <div class="card">
       <label>Date</label>
       <input type="date" id="logDate" />
       <div style="margin-top:8px">
-        <label style="display:flex; align-items:center; gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;">
           <input type="checkbox" id="holidayFlag" />
           <span>Public holiday (full day)</span>
         </label>
       </div>
     </div>
-
-    <div class="group">
-      <div class="logger-grid">
-        <div>
-          <label><strong>Start</strong></label>
-          <input type="time" id="startTime" />
-          <button class="btn" id="btnStartNow" style="margin-top:8px; width:100%">Start now</button>
-        </div>
-        <div class="center">
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label><b>Start</b></label><input type="time" id="startTime"/><button class="btn" id="btnStartNow" style="margin-top:8px;width:100%">Start now</button></div>
+        <div><label><b>Stop</b></label><input type="time" id="stopTime"/><button class="btn" id="btnStopNow" style="margin-top:8px;width:100%">Stop now</button></div>
+        <div style="grid-column:1/-1;display:grid;place-items:center;gap:8px">
           <button class="btn" id="btnAddBreak">+ Add break</button>
-          <div class="breaks" id="breaksPane"></div>
-        </div>
-        <div>
-          <label><strong>Stop</strong></label>
-          <input type="time" id="stopTime" />
-          <button class="btn" id="btnStopNow" style="margin-top:8px; width:100%">Stop now</button>
+          <div id="breaksPane" style="width:100%;max-height:200px;overflow:auto"></div>
         </div>
       </div>
-      <div class="total">
-        <span class="muted">Working time (-breaks)</span>
-        <strong id="computedTotal">0h 00m</strong>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="pill">Working time (-breaks)</span><strong id="computedTotal">0h 00m</strong>
       </div>
     </div>
-
-    <div class="group">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnSave">Save day</button>
-        <button class="btn danger" id="btnResetWork">Reset this day</button>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btnSave">Save day</button>
+        <button class="btn" id="btnResetWork">Reset this day</button>
       </div>
     </div>
   </section>
 
-  <section id="view-comp" class="view">
-    <div class="group">
+  <!-- COMPENSATION -->
+  <section id="view-comp" class="view fx-top">
+    <div class="card">
       <label>Date for compensation</label>
       <input type="date" id="compDate" />
     </div>
-    <div class="group">
-      <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:120px;">
-          <label>Hours</label>
-          <input type="number" id="compHours" min="0" value="0" />
-        </div>
-        <div style="flex:1; min-width:120px;">
-          <label>Minutes</label>
-          <input type="number" id="compMinutes" min="0" max="59" value="0" />
-        </div>
-        <div style="align-self:end;">
-          <button class="btn" id="btnFullDay">Full day (8h24m)</button>
-        </div>
+    <div class="card">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px"><label>Hours</label><input type="number" id="compHours" min="0" value="0"/></div>
+        <div style="flex:1;min-width:120px"><label>Minutes</label><input type="number" id="compMinutes" min="0" max="59" value="0"/></div>
+        <div style="align-self:end"><button class="btn" id="btnFullDay">Full day (8h24m)</button></div>
       </div>
-      <div class="row" style="margin-top:8px;">
-        <div style="flex:1;">
-          <label>Note (optional)</label>
-          <input type="text" id="compNote" placeholder="Doctor, PTO, etc." />
-        </div>
-      </div>
+      <div style="margin-top:8px"><label>Note (optional)</label><input type="text" id="compNote" placeholder="Doctor, PTO, etc."/></div>
       <div class="pill" id="compBalance">Overtime bank: 0h 00m</div>
     </div>
-    <div class="group">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnSaveComp">Save compensation</button>
-        <button class="btn danger" id="btnResetComp">Reset compensation for this day</button>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btnSaveComp">Save compensation</button>
+        <button class="btn" id="btnResetComp">Reset compensation for this day</button>
       </div>
     </div>
   </section>
 
+  <!-- Focus bubble -->
+  <div id="focusLayer" class="focus-layer">
+    <div class="backdrop" id="focusBackdrop"></div>
+    <div class="bubble-date" id="bubbleDate">—</div>
+    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas></div>
+    <div class="options" id="bubbleOptions">
+      <button class="opt-btn" id="optEditLog">Edit logging</button>
+      <button class="opt-btn" id="optEditComp">Edit compensation</button>
+    </div>
+    <div class="details" id="bubbleDetails">
+      <h4>Details</h4>
+      <div class="row"><span>Start</span><strong id="dStart">—</strong></div>
+      <div class="row"><span>Stop</span><strong id="dStop">—</strong></div>
+      <div class="row"><span>Breaks</span><strong id="dBreaks">—</strong></div>
+      <div class="row"><span>Worked</span><strong id="dWorked">0h 00m</strong></div>
+      <div class="row"><span>Comp used</span><strong id="dCompUsed">0h 00m</strong></div>
+      <div class="row"><span>Overtime</span><strong id="dOver">0h 00m</strong></div>
+      <div class="row"><span>Bank Δ</span><strong id="dDelta">0h 00m</strong></div>
+    </div>
+  </div>
+
   <script>
-    const TARGET = 504;
+    // Theme
+    const menuBtn = document.getElementById('btnMenu'), menuDD = document.getElementById('menuDD');
+    const mLight = document.getElementById('mLight'), mDark = document.getElementById('mDark');
+    const setTheme = t => { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('hourlogger.theme', t); };
+    setTheme(localStorage.getItem('hourlogger.theme') || 'dark');
+    menuBtn.addEventListener('click', ()=> menuDD.classList.toggle('show'));
+    mLight.addEventListener('click', ()=>{ setTheme('light'); menuDD.classList.remove('show'); });
+    mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
-    const KEY = 'hourlogger.v15';
-    const state = JSON.parse(localStorage.getItem(KEY) || '{}');
-    state.work ||= {};
-    state.comp ||= {};
-    function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+    // Constants & state
+    const TARGET=504, KEY='hourlogger.v22.2'; const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {}; const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
+    const pad=n=>String(n).padStart(2,'0'); const toDateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; const startOfWeekMon=d=>{const x=new Date(d);const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);x.setHours(0,0,0,0);return x}; const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+    const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const fmtHM=m=>`${Math.floor(Math.abs(m)/60)}h ${String(Math.abs(m)%60).padStart(2,'0')}m`; const fmtSignedHM=m=>(m<0?'-':'')+fmtHM(m);
+    const workMins=ds=>state.work[ds]?.netMins||0; const compMins=ds=>state.comp[ds]?.mins||0; const isHoliday=ds=>!!state.work[ds]?.holiday; const hasWork=ds=>{const w=state.work[ds];return !!w&&(w.start||w.stop||(w.breaks||[]).length||(w.netMins||0)>0)};
+    const usedCompForTarget=ds=>{const w=workMins(ds); if(!hasWork(ds)||isHoliday(ds)) return 0; return Math.max(0, TARGET-w)};
+    const dayBankDelta=ds=>{ if(isHoliday(ds)) return 0; const w=workMins(ds); if(!hasWork(ds)){const c=compMins(ds); return c? -c:0;} if(w>=TARGET) return w-TARGET; return -(TARGET-w); };
+    const overtimeBank=()=>{ const dates=new Set([...Object.keys(state.work),...Object.keys(state.comp)]); let t=0; dates.forEach(ds=>t+=dayBankDelta(ds)); return t; };
 
-    const pad = n => String(n).padStart(2,'0');
-    const toDateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const fmtHM = mins => `${Math.floor(Math.abs(mins)/60)}h ${pad(Math.abs(mins)%60)}m`;
-    const fmtSignedHM = mins => (mins<0?'-':'') + fmtHM(mins);
+    // Particles bg
+    const fx=document.getElementById('fxCanvas'),ctxFX=fx.getContext('2d'); let DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1)),W=0,H=0,particles=[];
+    function resizeFX(){W=fx.width=Math.floor(innerWidth*DPR);H=fx.height=Math.floor(innerHeight*DPR);fx.style.width=innerWidth+'px';fx.style.height=innerHeight+'px';}
+    function rnd(a,b){return a+Math.random()*(b-a)}
+    function initParticles(){ const count=16; particles=Array.from({length:count},()=>({x:rnd(0,W),y:rnd(0,H),r:rnd(60,140)*DPR,a:rnd(0,Math.PI*2),s:rnd(0.1,0.35),h:rnd(0,360)})); }
+    function drawFX(){ ctxFX.clearRect(0,0,W,H); ctxFX.globalCompositeOperation='lighter'; for(const p of particles){ p.a+=0.002*p.s; p.x+=Math.cos(p.a)*0.2*DPR; p.y+=Math.sin(p.a)*0.2*DPR; p.h=(p.h+0.05)%360; const g=ctxFX.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r); g.addColorStop(0,`hsla(${p.h},90%,60%,.18)`); g.addColorStop(1,`hsla(${(p.h+60)%360},90%,50%,0)`); ctxFX.fillStyle=g; ctxFX.beginPath(); ctxFX.arc(p.x,p.y,p.r,0,Math.PI*2); ctxFX.fill(); } requestAnimationFrame(drawFX); }
+    addEventListener('resize',()=>{resizeFX();initParticles();}); resizeFX(); initParticles(); drawFX();
 
-    function workMins(ds){ return state.work[ds]?.netMins || 0; }
-    function compMins(ds){ return state.comp[ds]?.mins || 0; }
-    function isHoliday(ds){ return !!state.work[ds]?.holiday; }
-    function hasWork(ds){ const w=state.work[ds]; return !!w && (w.start || w.stop || (w.breaks||[]).length || (w.netMins||0)>0); }
+    // ---- Canvas sand + water renderer (returns controller) ----
+    function SandWater(canvas, worked, compUsed, overtime){
+      const ctx = canvas.getContext('2d');
+      let raf=0, t=0, DPR=1, w=0, h=0;
+      const bubblesBottom=[], bubblesTop=[];
 
-    function usedCompForTarget(ds){
-      const w = workMins(ds), c = compMins(ds);
-      const needed = Math.max(0, TARGET - w);
-      return Math.min(c, needed);
+      function size(){
+        DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+        const cw = Math.max(1, canvas.clientWidth|0);
+        const ch = Math.max(1, canvas.clientHeight|0);
+        w = canvas.width  = Math.floor(cw * DPR);
+        h = canvas.height = Math.floor(ch * DPR);
+      }
+      function spawn(arr, area, count){
+        for(let i=0;i<count;i++){
+          arr.push({ x: area.x + Math.random()*area.w, y: area.y + area.h + Math.random()*10, r: 1 + Math.random()*2, vy: -(0.15+Math.random()*0.35)*DPR, drift:(Math.random()*0.4-0.2)*DPR });
+        }
+      }
+      function noise(y){ return (Math.sin(y*0.07 + t*0.8) + Math.sin(y*0.03 + t*0.6 + 2))/2; }
+
+      function draw(){
+        t += 0.016;
+        ctx.clearRect(0,0,w,h);
+        const half = h*0.5;
+        const sandH = Math.min(half, half * (worked / TARGET));
+        const compH = Math.min(half - sandH, half * (compUsed / TARGET));
+        const overH = Math.min(half, half * (Math.max(0,overtime) / TARGET));
+
+        // Sand
+        if (sandH>0){
+          const topY = h - sandH;
+          const grd = ctx.createLinearGradient(0, topY, 0, h); grd.addColorStop(0,'#d7c79c'); grd.addColorStop(1,'#b79e63');
+          ctx.fillStyle = grd; ctx.fillRect(0, topY, w, h-topY);
+          for(let i=0;i<Math.floor(w*h*0.00015);i++){ const nx=Math.random()*w, ny=topY+Math.random()*(h-topY); ctx.fillStyle=`rgba(130,110,60,${Math.random()*0.25})`; ctx.fillRect(nx,ny,1,1);}
+          ctx.beginPath(); ctx.moveTo(0, topY);
+          for(let x=0;x<=w;x+=4){ const y=topY - 2*DPR + noise(x)*2*DPR; ctx.lineTo(x,y); } ctx.lineTo(w, topY); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fill();
+        }
+        // Compensation water
+        if (compH>0){
+          const area={x:0,y:h - sandH - compH,w:w,h:compH}; const waveY=area.y + 6*DPR + Math.sin(t*1.8)*2*DPR;
+          const grdW=ctx.createLinearGradient(0,area.y,0,area.y+area.h); grdW.addColorStop(0,'rgba(100,180,255,0.55)'); grdW.addColorStop(1,'rgba(30,90,180,0.7)');
+          ctx.fillStyle=grdW; ctx.fillRect(area.x,area.y,area.w,area.h);
+          if(bubblesBottom.length<24) spawn(bubblesBottom, area, 2);
+          for(let i=bubblesBottom.length-1;i>=0;i--){ const b=bubblesBottom[i]; b.y+=b.vy; b.x+=Math.sin((t+i)*0.8)*0.2*DPR+b.drift; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill(); if(b.y<area.y+4*DPR) bubblesBottom.splice(i,1); }
+          ctx.beginPath(); ctx.moveTo(0,waveY); for(let x=0;x<=w;x+=4){ const y=waveY + Math.sin(x*0.04 + t*2.2)*2*DPR + Math.sin(x*0.025 + t*1.7)*1.2*DPR; ctx.lineTo(x,y);} ctx.lineTo(w,area.y); ctx.lineTo(0,area.y); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+        }
+        // Overtime water
+        if (overH>0){
+          const area={x:0,y:half - overH,w:w,h:overH}; const waveY=area.y + 6*DPR + Math.sin(t*2.0)*2*DPR;
+          const grdW2=ctx.createLinearGradient(0,area.y,0,area.y+area.h); grdW2.addColorStop(0,'rgba(120,200,255,0.55)'); grdW2.addColorStop(1,'rgba(10,70,160,0.75)');
+          ctx.fillStyle=grdW2; ctx.fillRect(area.x,area.y,area.w,area.h);
+          if(bubblesTop.length<18) spawn(bubblesTop, area, 1);
+          for(let i=bubblesTop.length-1;i>=0;i--){ const b=bubblesTop[i]; b.y+=b.vy; b.x+=Math.sin((t+i)*1.1)*0.25*DPR+b.drift; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill(); if(b.y<area.y+2*DPR) bubblesTop.splice(i,1); }
+          ctx.beginPath(); ctx.moveTo(0,waveY); for(let x=0;x<=w;x+=4){ const y=waveY + Math.sin(x*0.05 + t*2.0)*2*DPR + Math.sin(x*0.03 + t*1.6)*1.2*DPR; ctx.lineTo(x,y);} ctx.lineTo(w,area.y); ctx.lineTo(0,area.y); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+        }
+        // subtle midline
+        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1*DPR; ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke();
+        // cracks
+        if(overtime>0){ const strength=Math.min(1,overtime/TARGET); ctx.save(); ctx.globalAlpha=0.25+0.35*strength; ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1*DPR;
+          const cx=w/2, cy=Math.max(2*DPR, h*0.5 - Math.min(h*0.5, h*0.5*(overtime/TARGET))); const rays=6+Math.floor(6*strength);
+          for(let i=0;i<rays;i++){ const ang=(Math.PI*2)*(i/rays)+Math.sin(t*0.5+i)*0.08; const len=(h*0.25+Math.random()*h*0.15)*strength;
+            ctx.beginPath(); ctx.moveTo(cx,cy); for(let s=1;s<=4;s++){ const p=s/4; const jx=cx+Math.cos(ang)*len*p + Math.sin(ang)*(Math.random()*6-3)*DPR; const jy=cy+Math.sin(ang)*len*p + Math.cos(ang)*(Math.random()*6-3)*DPR; ctx.lineTo(jx,jy);} ctx.lineTo(cx+Math.cos(ang)*len, cy+Math.sin(ang)*len); ctx.stroke(); }
+          ctx.restore();
+        }
+        raf = requestAnimationFrame(draw);
+      }
+      function start(){ cancel(); size(); raf = requestAnimationFrame(draw); }
+      function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
+      const ro = new ResizeObserver(()=>start()); ro.observe(canvas);
+      // kick once layout is ready
+      requestAnimationFrame(start);
+      return { cancel, start };
     }
 
-    function completionPct(ds){
-      const w = workMins(ds);
-      const used = usedCompForTarget(ds);
-      return Math.min(1, (w + used) / TARGET);
-    }
+    // Views
+    const views={menu:document.getElementById('view-menu'),calendar:document.getElementById('view-calendar'),logger:document.getElementById('view-logger'),comp:document.getElementById('view-comp')};
+    function show(n){for(const v in views) views[v].classList.remove('active'); views[n].classList.add('active'); if(n==='menu') renderMenu(); if(n==='calendar') renderWeek(); if(n==='logger') renderLogger(); if(n==='comp') renderComp();}
+    document.getElementById('goCalendar').addEventListener('click',()=>show('calendar'));
+    document.getElementById('goLogger').addEventListener('click',()=>show('logger'));
+    document.getElementById('goComp').addEventListener('click',()=>show('comp'));
 
-    // Day bank rule per your examples
-    function dayBankDelta(ds){
-      if (isHoliday(ds)) return 0;
-      const w = workMins(ds), c = compMins(ds);
-      const anyWork = hasWork(ds);
-      if (!anyWork && c===0) return 0;
-      if (anyWork && c===0) return w - TARGET;
-      if (!anyWork && c>0) return -c;
-      if (w >= TARGET) return w - TARGET;
-      return -usedCompForTarget(ds);
-    }
+    function renderMenu(){ const ws=startOfWeekMon(new Date()); let sum=0; for(let i=0;i<7;i++){ sum+=workMins(toDateStr(addDays(ws,i))); } document.getElementById('pillWeek').textContent='Weekly hours: '+fmtHM(sum); document.getElementById('pillBank').textContent='Overtime bank: '+fmtSignedHM(overtimeBank()); }
 
-    function overtimeBank(){
-      const dates = new Set([...Object.keys(state.work), ...Object.keys(state.comp)]);
-      let total = 0; dates.forEach(ds => total += dayBankDelta(ds));
-      return total;
-    }
+    // Calendar
+    const weekTitle=document.getElementById('wTitle'), weekStrip=document.getElementById('weekStrip'), calFooter=document.getElementById('calFooter'); let weekStart=startOfWeekMon(new Date());
+    const dayControllers = new Map();
 
-    function monthWorkedMins(year, month){
-      let total=0; for (let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)) total += workMins(toDateStr(d)); return total;
-    }
+    function renderWeek(){
+      const ws=new Date(weekStart), we=addDays(ws,6);
+      weekTitle.textContent = `${ws.getDate()} ${monthNames[ws.getMonth()]} – ${we.getDate()} ${monthNames[we.getMonth()]} ${we.getFullYear()}`;
+      // cleanup old animations
+      for (const ctrl of dayControllers.values()) ctrl.cancel?.();
+      dayControllers.clear();
+      weekStrip.innerHTML = '';
+      let weekSum = 0;
 
-    const views = { menu: document.getElementById('view-menu'), calendar: document.getElementById('view-calendar'), logger: document.getElementById('view-logger'), comp: document.getElementById('view-comp') };
-    const btnBack = document.getElementById('btnBack');
-    function show(name){ Object.values(views).forEach(v=>v.classList.remove('active')); views[name].classList.add('active'); btnBack.style.visibility = (name==='menu') ? 'hidden' : 'visible'; if (name==='menu') renderMenu(); if (name==='calendar') renderCalendar(); if (name==='logger') renderLogger(); if (name==='comp') renderComp(); }
-    btnBack.addEventListener('click', ()=>show('menu'));
+      for (let i=0;i<7;i++){
+        const d = addDays(ws,i);
+        const ds = toDateStr(d);
+        const worked = workMins(ds);
+        const compUsed = usedCompForTarget(ds);
+        const overtime = Math.max(0, worked - TARGET);
+        weekSum += worked;
 
-    const pillToday = document.getElementById('pillToday'), pillTodayHours = document.getElementById('pillTodayHours'), pillBank = document.getElementById('pillBank');
-    document.getElementById('goCalendar').addEventListener('click', ()=>show('calendar'));
-    document.getElementById('goLogger').addEventListener('click', ()=>show('logger'));
-    document.getElementById('goComp').addEventListener('click', ()=>show('comp'));
-
-    function renderMenu(){
-      const now = new Date(); const dStr = toDateStr(now);
-      pillToday.textContent = dStr;
-      pillTodayHours.textContent = "Today: " + fmtHM(workMins(dStr));
-      pillBank.textContent = "Overtime bank: " + fmtSignedHM(overtimeBank());
-    }
-
-    const calTitle = document.getElementById('calTitle'), calDOW = document.getElementById('calDOW'), calGrid = document.getElementById('calGrid'), dayDrawer = document.getElementById('dayDrawer'), calFooter = document.getElementById('calFooter'); let monthOffset = 0;
-    function startOfMonthWithMondayGrid(date){ const first = new Date(date.getFullYear(), date.getMonth(), 1); const day = (first.getDay() + 6) % 7; first.setDate(first.getDate() - day); first.setHours(0,0,0,0); return first; }
-    function renderCalendar(){
-      const base = new Date(); base.setMonth(base.getMonth()+monthOffset);
-      calTitle.textContent = monthNames[base.getMonth()] + " " + base.getFullYear();
-      calDOW.innerHTML=''; dows.forEach(d=>{ const el=document.createElement('div'); el.textContent=d; el.className='dow'; calDOW.appendChild(el); });
-      calGrid.innerHTML=''; dayDrawer.classList.remove('active');
-      const start = startOfMonthWithMondayGrid(base);
-      for (let i=0;i<42;i++){
-        const d = new Date(start); d.setDate(start.getDate()+i); const ds = toDateStr(d);
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
-
-        const worked = workMins(ds), comp = compMins(ds);
-        const used = Math.min(Math.max(0, TARGET - worked), comp);
-        const leftWorkPct = Math.max(0, Math.min(100, worked / TARGET * 100));
-        const leftUsedPct = Math.max(0, Math.min(100 - leftWorkPct, used / TARGET * 100));
-        const rightOTPct = Math.max(0, worked - TARGET) / TARGET * 100;
-
-        const bars = document.createElement('div'); bars.className='bg-bars';
-        const left = document.createElement('div'); left.className='bg-half';
-        const fillG = document.createElement('div'); fillG.className='fill green'; fillG.style.width = leftWorkPct + '%';
-        const fillV = document.createElement('div'); fillV.className='fill violet'; fillV.style.left = leftWorkPct + '%'; fillV.style.width = leftUsedPct + '%';
-        left.appendChild(fillG); if (leftUsedPct>0) left.appendChild(fillV);
-        const right = document.createElement('div'); right.className='bg-half';
-        const fillR = document.createElement('div'); fillR.className='fill red'; fillR.style.width = Math.min(100, rightOTPct) + '%';
-        if (rightOTPct>0) right.appendChild(fillR);
-        bars.appendChild(left); bars.appendChild(right);
-        el.appendChild(bars);
-
-        const pct = Math.round(Math.min(1, (worked + used) / TARGET) * 100);
-        el.innerHTML += `<span class="n">${d.getDate()}</span><div class="pct">${pct}%</div>`;
-        if (worked){ const hh=document.createElement('span'); hh.className='h'; hh.textContent=fmtHM(worked); el.appendChild(hh); }
-        else if (comp){ const hh=document.createElement('span'); hh.className='h'; hh.textContent='+'+fmtHM(comp); el.appendChild(hh); }
-
-        el.addEventListener('click', ()=>openDayDrawer(ds)); calGrid.appendChild(el);
+        el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
+        const canvas = document.createElement('canvas'); el.appendChild(canvas);
+        requestAnimationFrame(()=>{
+          const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
+          dayControllers.set(el, ctrl);
+        });
+        el.addEventListener('click', ()=> openBubbleCentered(ds, worked, compUsed, overtime));
+        weekStrip.appendChild(el);
       }
-      const totalH = fmtHM(monthWorkedMins(base.getFullYear(), base.getMonth()));
-      const bank = fmtSignedHM(overtimeBank());
-      calFooter.innerHTML = `<strong>Month hours:</strong> ${totalH} · <strong>Overtime bank:</strong> ${bank}`;
+
+      calFooter.innerHTML = `<strong>Weekly hours:</strong> ${fmtHM(weekSum)} · <strong>Overtime bank:</strong> ${fmtSignedHM(overtimeBank())}`;
     }
 
-    function openDayDrawer(ds){
-      const worked = workMins(ds), comp = compMins(ds);
-      const used = usedCompForTarget(ds);
-      const completion = Math.min(1, (worked + used) / TARGET);
-      const delta = dayBankDelta(ds);
+    document.getElementById('wPrev').addEventListener('click',()=>{weekStart=addDays(weekStart,-7);renderWeek();});
+    document.getElementById('wNext').addEventListener('click',()=>{weekStart=addDays(weekStart, 7);renderWeek();});
+    document.getElementById('wToday').addEventListener('click',()=>{weekStart=startOfWeekMon(new Date());renderWeek();});
 
-      let html = `<div class="muted" style="margin-bottom:6px"><strong>${ds}</strong>${isHoliday(ds)?' • Public holiday':''}</div>`;
-      html += `<div class="group" style="margin-top:0">
-        <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
-          <div class="pill">Worked: ${fmtHM(worked)}</div>
-          <div class="pill">Comp (used): ${fmtHM(used)}${comp>used ? ' • extra not used' : ''}</div>
-          <div class="pill">Day impact: ${fmtSignedHM(delta)}</div>
-        </div>
-        <div class="bars">
-          <div class="bar" style="position:relative;">
-            <div class="fill green" style="position:absolute; inset:0; width:${Math.min(100, worked/TARGET*100)}%"></div>
-            <div class="fill violet" style="position:absolute; left:${Math.min(100, worked/TARGET*100)}%; width:${Math.max(0, Math.min(100 - Math.min(100, worked/TARGET*100), used/TARGET*100))}%"></div>
-            <div class="label">${Math.round(completion*100)}%</div>
-          </div>
-          <div class="bar"><div class="fill red" style="width:${Math.min(100, Math.max(0, worked - TARGET)/TARGET*100)}%"></div><div class="label">${fmtSignedHM(delta)}}</div></div>
-        </div>
-        <div class="row" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" id="drawerEdit">Edit work</button>
-          <button class="btn" id="drawerEditComp">Edit compensation</button>
-          <button class="btn danger" id="drawerReset">Reset this day</button>
-        </div>
-      </div>`;
-
-      const drawer = document.getElementById('dayDrawer');
-      drawer.innerHTML = html; drawer.classList.add('active');
-      document.getElementById('drawerEdit').onclick = ()=>{ document.getElementById('logDate').value = ds; loadDayIntoLogger(ds); show('logger'); };
-      document.getElementById('drawerEditComp').onclick = ()=>{ document.getElementById('compDate').value = ds; loadCompIntoForm(ds); show('comp'); };
-      document.getElementById('drawerReset').onclick = ()=>{ delete state.work[ds]; delete state.comp[ds]; save(); renderMenu(); renderCalendar(); drawer.classList.remove('active'); };
-    }
-
-    document.getElementById('calPrev').addEventListener('click', ()=>{ monthOffset--; renderCalendar(); });
-    document.getElementById('calNext').addEventListener('click', ()=>{ monthOffset++; renderCalendar(); });
-    document.getElementById('calToday').addEventListener('click', ()=>{ monthOffset=0; renderCalendar(); });
-
-    function nowHHMM(){ const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
-    function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60 + m; }
+    // Logger
+    function nowHHMM(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; }
+    function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
     function validTime(t){ return /^\d{2}:\d{2}$/.test(t); }
-    const breaksPane = document.getElementById('breaksPane');
+    const breaksPane=document.getElementById('breaksPane');
+    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ document.getElementById('computedTotal').textContent='0h 00m'; return 0; }
+      let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
+      const net=Math.max(0,work-bt); document.getElementById('computedTotal').textContent=fmtHM(net); return net; }
+    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
+      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
+      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+      <div style="align-self:end"><button class="btn bi-del">Remove</button></div>`; breaksPane.appendChild(row);
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
+    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; document.getElementById('computedTotal').textContent='0h 00m'; const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
+      if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
+    function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
+    document.getElementById('logDate').addEventListener('change',e=>clearLoggerFor(e.target.value));
+    document.getElementById('btnStartNow').addEventListener('click',()=>{document.getElementById('startTime').value=nowHHMM(); computeTotal();});
+    document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
+    document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
+    document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
+    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){alert('Enter both start and stop times');return;}
+      const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
+      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); show('menu'); });
+    document.getElementById('btnResetWork').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]){ delete state.work[ds]; save(); } clearLoggerFor(ds); renderMenu(); renderWeek(); });
 
-    function computeTotal(){
-      const a = document.getElementById('startTime').value.trim(); const b = document.getElementById('stopTime').value.trim();
-      if (!validTime(a) || !validTime(b)) { document.getElementById('computedTotal').textContent = '0h 00m'; return 0; }
-      let work = parseHHMM(b) - parseHHMM(a); if (work<0) work += 24*60;
-      let breakTotal = 0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(); const e=it.querySelector('.bi-stop').value.trim(); if (validTime(s)&&validTime(e)){ let mins=parseHHMM(e)-parseHHMM(s); if (mins>0) breakTotal += mins; } });
-      const net = Math.max(0, work - breakTotal); document.getElementById('computedTotal').textContent = fmtHM(net); return net;
-    }
-    function addBreakRow(initial={name:'', start:'', stop:''}){
-      const row = document.createElement('div'); row.className='break-item'; row.innerHTML = `
-        <div><small>Name</small><input type="text" class="bi-name" placeholder="Lunch / Errand" value="${initial.name||''}"></div>
-        <div><small>Start</small><input type="time" class="bi-start" value="${initial.start||''}"></div>
-        <div><small>Stop</small><input type="time" class="bi-stop" value="${initial.stop||''}"></div>
-        <div><button class="btn danger bi-del">Remove</button></div>`;
-      breaksPane.appendChild(row); document.getElementById('breaksPane').classList.add('active');
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', computeTotal));
-      row.querySelector('.bi-del').addEventListener('click', ()=>{ row.remove(); if(!breaksPane.querySelector('.break-item')) breaksPane.classList.remove('active'); computeTotal(); });
-      computeTotal();
-    }
-    function clearLoggerFor(ds){
-      document.getElementById('startTime').value=''; document.getElementById('stopTime').value='';
-      breaksPane.innerHTML=''; breaksPane.classList.remove('active');
-      document.getElementById('computedTotal').textContent='0h 00m';
-      const w = state.work[ds];
-      document.getElementById('holidayFlag').checked = !!(w && w.holiday);
-      if (w){
-        document.getElementById('startTime').value = w.start||'';
-        document.getElementById('stopTime').value = w.stop||'';
-        (w.breaks||[]).forEach(b=>addBreakRow(b));
-        computeTotal();
-      }
-    }
-    function loadDayIntoLogger(ds){ document.getElementById('logDate').value = ds; clearLoggerFor(ds); }
-    function renderLogger(){
-      const dateInput = document.getElementById('logDate');
-      if (!dateInput.value) dateInput.value = toDateStr(new Date());
-      clearLoggerFor(dateInput.value);
-    }
-    document.getElementById('logDate').addEventListener('change', (e)=>{ const ds = e.target.value; clearLoggerFor(ds); });
+    function renderComp(){ const ds=document.getElementById('compDate').value||toDateStr(new Date()); if(!document.getElementById('compDate').value) document.getElementById('compDate').value=ds; document.getElementById('compBalance').textContent='Overtime bank: '+fmtSignedHM(overtimeBank()); }
+    document.getElementById('btnFullDay').addEventListener('click',()=>{document.getElementById('compHours').value=8;document.getElementById('compMinutes').value=24;});
+    document.getElementById('btnSaveComp').addEventListener('click',()=>{ const ds=document.getElementById('compDate').value||toDateStr(new Date()); const h=Math.max(0,parseInt(document.getElementById('compHours').value||'0',10)); const m=Math.max(0,parseInt(document.getElementById('compMinutes').value||'0',10))%60; const mins=h*60+m; const note=document.getElementById('compNote').value.trim(); if(!mins){alert('Enter hours/minutes to compensate');return;} state.comp[ds]={mins,note}; save(); renderMenu(); renderWeek(); show('menu'); });
+    document.getElementById('btnResetComp').addEventListener('click',()=>{ const ds=document.getElementById('compDate').value||toDateStr(new Date()); if(state.comp[ds]){ delete state.comp[ds]; save(); } renderMenu(); renderWeek(); });
 
-    document.getElementById('btnStartNow').addEventListener('click', ()=>{ document.getElementById('startTime').value = nowHHMM(); computeTotal(); });
-    document.getElementById('btnStopNow').addEventListener('click',  ()=>{ document.getElementById('stopTime').value  = nowHHMM(); computeTotal(); });
-    document.getElementById('btnAddBreak').addEventListener('click', ()=> addBreakRow());
-    document.getElementById('startTime').addEventListener('input', computeTotal);
-    document.getElementById('stopTime').addEventListener('input', computeTotal);
+    // Bubble centered
+    const focusLayer=document.getElementById('focusLayer'), bubble=document.getElementById('bubble'), bubbleCanvas=document.getElementById('bubbleCanvas'), bubbleOptions=document.getElementById('bubbleOptions'), bubbleDateLbl=document.getElementById('bubbleDate'), bubbleDetails=document.getElementById('bubbleDetails');
+    let bubbleCtrl=null, bubbleDate=null;
+    function openBubbleCentered(ds, worked, compUsed, overtime){
+      bubbleDate = ds;
+      bubbleDateLbl.textContent = ds;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const bw = Math.min(360, vw - 32), bh = 200;
+      bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
+      bubbleOptions.style.top = (vh/2 + bh/2 + 10) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      bubbleDetails.style.top = (vh/2 + bh/2 + 10 + 120) + 'px';
 
-    document.getElementById('btnSave').addEventListener('click', ()=>{
-      const ds = document.getElementById('logDate').value || toDateStr(new Date());
-      const a = document.getElementById('startTime').value.trim();
-      const b = document.getElementById('stopTime').value.trim();
-      if (!validTime(a) || !validTime(b)) { alert('Enter both start and stop times'); return; }
-      const net = computeTotal();
-      const breaks=[];
-      document.querySelectorAll('#breaksPane .break-item').forEach(it=>{ breaks.push({ name: it.querySelector('.bi-name').value.trim(), start: it.querySelector('.bi-start').value.trim(), stop: it.querySelector('.bi-stop').value.trim() }); });
-      const holiday = document.getElementById('holidayFlag').checked;
-      state.work[ds] = { start:a, stop:b, breaks, netMins: net, holiday };
-      save(); renderMenu(); renderCalendar(); show('menu');
-    });
+      // details
+      const wObj = state.work[ds]||{};
+      document.getElementById('dStart').textContent = wObj.start||'—';
+      document.getElementById('dStop').textContent  = wObj.stop||'—';
+      document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
+      document.getElementById('dWorked').textContent= fmtHM(worked);
+      document.getElementById('dCompUsed').textContent= fmtHM(compUsed);
+      document.getElementById('dOver').textContent  = fmtHM(Math.max(0,overtime));
+      const delta = worked>=TARGET ? (worked-TARGET) : -(TARGET-worked);
+      document.getElementById('dDelta').textContent = fmtSignedHM(delta);
 
-    document.getElementById('btnResetWork').addEventListener('click', ()=>{
-      const ds = document.getElementById('logDate').value || toDateStr(new Date());
-      if (state.work[ds]) { delete state.work[ds]; save(); }
-      clearLoggerFor(ds); renderMenu(); renderCalendar();
-    });
+      focusLayer.classList.add('active');
+      if(navigator.vibrate){ navigator.vibrate(10); }
 
-    function renderComp(){
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      if (!document.getElementById('compDate').value) document.getElementById('compDate').value = ds;
-      document.getElementById('compBalance').textContent = "Overtime bank: " + fmtSignedHM(overtimeBank());
+      if(bubbleCtrl) bubbleCtrl.cancel();
+      requestAnimationFrame(()=>{
+        bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,TARGET), compUsed, Math.max(0,overtime));
+      });
     }
-    function loadCompIntoForm(ds){
-      const c = state.comp[ds];
-      if (c){
-        document.getElementById('compDate').value = ds;
-        document.getElementById('compHours').value = Math.floor((c.mins||0)/60);
-        document.getElementById('compMinutes').value = (c.mins||0)%60;
-        document.getElementById('compNote').value = c.note||'';
-      } else {
-        document.getElementById('compHours').value = 0;
-        document.getElementById('compMinutes').value = 0;
-        document.getElementById('compNote').value = '';
-      }
-    }
-    document.getElementById('btnFullDay').addEventListener('click', ()=>{ document.getElementById('compHours').value = 8; document.getElementById('compMinutes').value = 24; });
-    document.getElementById('btnSaveComp').addEventListener('click', ()=>{
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      const hours = Math.max(0, parseInt(document.getElementById('compHours').value||'0',10));
-      const minutes = Math.max(0, parseInt(document.getElementById('compMinutes').value||'0',10)) % 60;
-      const mins = hours*60 + minutes;
-      const note = document.getElementById('compNote').value.trim();
-      if (!mins){ alert('Enter hours/minutes to compensate'); return; }
-      state.comp[ds] = { mins, note };
-      save(); renderMenu(); renderCalendar(); show('menu');
-    });
-    document.getElementById('btnResetComp').addEventListener('click', ()=>{
-      const ds = document.getElementById('compDate').value || toDateStr(new Date());
-      if (state.comp[ds]) { delete state.comp[ds]; save(); }
-      renderMenu(); renderCalendar(); loadCompIntoForm(ds);
-    });
+    document.getElementById('focusBackdrop').addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });
+    document.getElementById('optEditLog').addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });
+    document.getElementById('optEditComp').addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('compDate').value=bubbleDate; focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('comp'); } });
 
-    (function boot(){
-      show('menu');
-      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
-    })();
+    // Boot
+    show('menu');
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
   </script>
 </body>
 </html>
