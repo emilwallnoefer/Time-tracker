@@ -42,7 +42,7 @@
     .card p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.2}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--stroke);border-radius:999px;font-size:12px;color:var(--muted);background:var(--pill);box-shadow:var(--glow)}
 
-    .week-card{ background:var(--card); border:1px solid var(--stroke); border-radius:18px; padding:10px; box-shadow:var(--glow); width:100%; box-sizing:border-box; }
+    .week-card{ background:var(--card); border:1px solid var(--stroke); border-radius:14px; padding:10px; box-shadow:var(--glow); }
     .week-head{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:8px; }
     .week-title{ font-weight:800; font-size:18px; }
     .week-nav{ display:flex; gap:6px; }
@@ -55,15 +55,9 @@
     .day .n{position:absolute;top:8px;left:10px;font-size:11px;font-weight:700;z-index:2;text-shadow:0 2px 6px #0008}
     .day .h{position:absolute;bottom:8px;right:10px;font-weight:700;font-size:11px;z-index:2;text-shadow:0 2px 6px #0008}
     .day .pct{position:absolute;bottom:8px;left:10px;font-weight:700;font-size:11px;z-index:2;opacity:.9;text-shadow:0 2px 6px #0008}
-    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none }
+    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none }
 
     .cal-footer{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--stroke);margin-top:6px;font-size:12px}
-
-    /* v28 week width/center */
-    .week-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(128px,1fr);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 2px;margin:0 auto;-webkit-overflow-scrolling:touch}
-    .week-head{ display:grid; grid-template-columns: 1fr; place-items:center; gap:8px; text-align:center }
-    .cal-footer{ justify-content:center }
-    
 
     /* Focus bubble and details */
     .focus-layer{position:fixed;inset:0;display:none;z-index:50}
@@ -89,17 +83,6 @@
     .update-banner{ position: fixed; left: 12px; right:12px; bottom: calc(env(safe-area-inset-bottom,0px) + 12px); background:#0f1a2a; color:#cbe0ff; border:1px solid #163458; border-radius:12px; padding:10px; display:none; align-items:center; justify-content:space-between; gap:8px; z-index:60; box-shadow:0 16px 60px #0008 }
     .update-banner.show{ display:flex }
     .version{ text-align:center; color:var(--muted); font-size:11px; margin:12px 0 6px }
-    /* Holiday emoji overlay inside day tiles */
-    .day .holiday{position:absolute;inset:0;display:grid;place-items:center;font-size:48px;opacity:.98;z-index:1;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.45);}
-    /* Holiday overlay inside the day bubble */
-    .holiday-bubble{position:absolute;inset:0;display:none;place-items:center;font-size:110px;opacity:.98;z-index:2;pointer-events:none;text-shadow:0 8px 24px rgba(0,0,0,.5);}
-    .holiday-bubble.show{ display:grid; }
-    /* Calendar header/footer centering */
-    .week-head{ display:grid; grid-template-columns: 1fr; place-items:center; gap:8px; text-align:center }
-    .cal-footer{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--stroke);margin-top:6px;font-size:12px;justify-content:center}
-    /* Keep week strip scrollable and visually centered */
-    .week-strip{ margin: 0 auto; }
-
     /* Page centering + safe bottom space */
     .page-wrap{ max-width: 560px; margin: 0 auto; display: grid; gap: 12px; }
     .view{ padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); }
@@ -128,7 +111,14 @@
     .toast-wrap{ position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 18px); display:grid; place-items:center; z-index:80; pointer-events:none }
     .toast{ background:#101826; color:#e8f0ff; border:1px solid #1d2a45; padding:10px 14px; border-radius:12px; box-shadow:0 10px 40px #0008; opacity:0; transform:translateY(10px); transition:.22s ease; font-size:13px; pointer-events:auto }
     .toast.show{ opacity:1; transform:none }
-  </style>
+  
+/* Limit horizontal scroll to the days strip only */
+html, body { overflow-x: hidden; }
+.view, .page-wrap { overflow-x: hidden; }
+.week-card { overflow: hidden; } /* keep shadows/content inside */
+.week-strip{ overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+
+</style>
 </head>
 <body>
   <div class="toast-wrap"><div id="toast" class="toast">Saved</div></div>
@@ -158,7 +148,7 @@
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 28</div>
+    <div class="version version-menu">Hour Logger 23</div>
   </section>
 
   <!-- CALENDAR -->
@@ -175,7 +165,7 @@
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 28</div>
+    <div class="version">Hour Logger 23</div>
   </section>
 
   <!-- LOGGER -->
@@ -205,14 +195,14 @@
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 28</div>
+    <div class="version">Hour Logger 23</div>
   </section>
 
   <!-- Focus bubble -->
   <div id="focusLayer" class="focus-layer">
     <div class="backdrop" id="focusBackdrop"></div>
     <div class="bubble-date" id="bubbleDate">—</div>
-    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas><div id="bubbleHoliday" class="holiday-bubble">🏖️</div></div>
+    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas></div>
     <div class="options" id="bubbleOptions">
       <button class="opt-btn" id="optEditLog">Edit logging</button>
       <button class="opt-btn" id="optFillMissing">Fill missing time</button>
@@ -234,7 +224,7 @@
   </div>
 
   <script>
-    const APP_VERSION = "28";
+    const APP_VERSION = "23";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -255,7 +245,7 @@
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.28';
+    const TARGET=504, KEY='hourlogger.23';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -377,7 +367,6 @@
         const wrap = document.createElement('div'); wrap.className='day-wrap';
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
         el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
-        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
         const canvas = document.createElement('canvas'); el.appendChild(canvas);
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
@@ -439,9 +428,9 @@
       const vw = window.innerWidth, vh = window.innerHeight;
       const bw = Math.min(360, vw - 32), bh = 200;
       bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (Math.max(70, (innerWidth<420?60:80))) + 'px';
-      bubbleOptions.style.top = (parseFloat(bubble.style.top) + bh + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-      const optRect = bubbleOptions.getBoundingClientRect(); bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 8) + 'px';
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
+      bubbleOptions.style.top = (vh/2 + bh/2 + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      bubbleDetails.style.top = (vh/2 + bh/2 + 8 + 110) + 'px';
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
@@ -449,7 +438,6 @@
       document.getElementById('dCompUsed').textContent= fmtHM(compUsed);
       document.getElementById('dOver').textContent  = fmtHM(Math.max(0,overtime));
 
-      const bhEl = document.getElementById('bubbleHoliday'); if (bhEl) bhEl.classList.toggle('show', !!isHoliday(ds));
       focusLayer.classList.add('active');
       if(navigator.vibrate){ navigator.vibrate(10); }
 
