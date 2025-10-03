@@ -55,7 +55,7 @@
     .day .n{position:absolute;top:8px;left:10px;font-size:11px;font-weight:700;z-index:2;text-shadow:0 2px 6px #0008}
     .day .h{position:absolute;bottom:8px;right:10px;font-weight:700;font-size:11px;z-index:2;text-shadow:0 2px 6px #0008}
     .day .pct{position:absolute;bottom:8px;left:10px;font-weight:700;font-size:11px;z-index:2;opacity:.9;text-shadow:0 2px 6px #0008}
-    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none }
+    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none }
 
     .cal-footer{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--stroke);margin-top:6px;font-size:12px}
 
@@ -89,15 +89,6 @@
     .card.actions{ position: relative; }
     .card.actions .btn{ min-width: 44%; }
     .card.actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
-    /* Logger full centering */
-    #view-logger .card{ display:grid; justify-items:center; text-align:center }
-    #view-logger .card > *{ max-width:520px; width:100% }
-    #view-logger .row{ justify-content:center }
-    #view-logger .actions{ justify-content:center }
-
-    .line-stats{ display:flex; gap:8px; flex-wrap:wrap; }
-    .version.version-menu{ position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); text-align:center; z-index: 5; }
-
 
 
     /* Mobile polish */
@@ -111,79 +102,7 @@
     .toast-wrap{ position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 18px); display:grid; place-items:center; z-index:80; pointer-events:none }
     .toast{ background:#101826; color:#e8f0ff; border:1px solid #1d2a45; padding:10px 14px; border-radius:12px; box-shadow:0 10px 40px #0008; opacity:0; transform:translateY(10px); transition:.22s ease; font-size:13px; pointer-events:auto }
     .toast.show{ opacity:1; transform:none }
-  
-/* Limit horizontal scroll to the days strip only */
-html, body { overflow-x: hidden; }
-.view, .page-wrap { overflow-x: hidden; }
-.week-card { overflow: hidden; } /* keep shadows/content inside */
-.week-strip{ overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
-
-
-    /* Holiday overlays */
-    .day .holiday{
-      position:absolute; inset:0; display:grid; place-items:center;
-      font-size:48px; opacity:.98; z-index:1; pointer-events:none;
-      text-shadow: 0 2px 8px rgba(0,0,0,.45);
-    }
-    .holiday-bubble{
-      position:absolute; inset:0; display:none; place-items:center;
-      font-size:110px; opacity:.98; z-index:2; pointer-events:none;
-      text-shadow: 0 8px 24px rgba(0,0,0,.5);
-    }
-    .holiday-bubble.show{ display:grid; }
-    
-
-/* v35 size-only tweaks for logger to prevent overlap */
-@media (max-width: 420px){
-  .title{ font-size:16px }
-  .icon-btn{ width:36px; height:36px; padding:8px }
-  .btn{ padding:8px 10px; font-size:13px }
-  .btn.small{ padding:7px 9px; font-size:12px }
-  #view-logger input[type="time"],
-  #view-logger input[type="date"],
-  #view-logger input[type="text"],
-  #view-logger input[type="number"]{ font-size:14px; padding:9px }
-  /* target the inline grid (start/stop) without changing structure */
-  #view-logger .card > div[style*="grid-template-columns"]{ gap:8px }
-  #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:160px; margin:0 auto }
-  /* action buttons wrap more gracefully */
-  .card.actions .btn{ min-width:48% }
-}
-@media (max-width: 360px){
-  #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:150px }
-  .card.actions .btn{ min-width:100% }
-}
-
-
-/* v36 breaks responsive layout (structure + pixels) */
-#breaksPane .break-item{ display:grid; grid-template-columns:1.1fr 1fr 1fr auto; gap:8px; align-items:end; margin:8px 0 }
-#breaksPane .bi-actions .btn{ min-width:104px; padding:8px 10px; font-size:12px }
-#breaksPane .break-item > *{ min-width:0 } /* allow shrinking */
-#breaksPane .break-item input[type="time"],
-#breaksPane .break-item input[type="text"]{ padding:9px; font-size:14px }
-
-@media (max-width: 460px){
-  #breaksPane .break-item{
-    grid-template-columns:1fr 1fr;
-    grid-template-areas:
-      "name name"
-      "start stop"
-      "actions actions";
-    gap:8px;
-  }
-  #breaksPane .bi-name-block{ grid-area:name }
-  #breaksPane .bi-start-block{ grid-area:start }
-  #breaksPane .bi-stop-block{  grid-area:stop }
-  #breaksPane .bi-actions{ grid-area:actions; display:grid; place-items:center }
-  #breaksPane .bi-actions .btn{ min-width:120px }
-}
-
-@media (max-width: 360px){
-  #breaksPane .break-item input[type="time"]{ font-size:13px; padding:8px }
-  #breaksPane .bi-actions .btn{ min-width:100%; }
-}
-
-</style>
+  </style>
 </head>
 <body>
   <div class="toast-wrap"><div id="toast" class="toast">Saved</div></div>
@@ -203,17 +122,18 @@ html, body { overflow-x: hidden; }
   <section id="view-menu" class="view active fx-top"><div class="page-wrap">
     <div class="hero"><h1>Track your day</h1></div>
     <div class="cards">
+      <div class="pill" id="pillWeek">Weekly hours: 0h 00m</div>
+      <div class="pill" id="pillBank">Overtime bank: 0h 00m</div>
       <div class="card">
-        <div style="flex:1"><h3>Start logging</h3></div>
+        <div style="flex:1"><h3>Today’s logging</h3><p>Working time (-breaks), start/stop, breaks, save.</p></div>
         <button class="btn primary" id="goLogger">Open</button>
       </div>
       <div class="card">
-        <div style="flex:1"><h3>Calendar</h3></div>
+        <div style="flex:1"><h3>Calendar (weekly)</h3><p>Tap a day, bubble shows actions.</p></div>
         <button class="btn" id="goCalendar">Open</button>
       </div>
-      <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 36</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- CALENDAR -->
@@ -230,7 +150,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 36</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- LOGGER -->
@@ -254,20 +174,22 @@ html, body { overflow-x: hidden; }
           <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
         </div>
       </div>
-      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="pill">Working time (-breaks)</span><strong id="computedTotal">0h 00m</strong>
+      </div>
     </div>
     <div class="card actions">
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 36</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- Focus bubble -->
   <div id="focusLayer" class="focus-layer">
     <div class="backdrop" id="focusBackdrop"></div>
     <div class="bubble-date" id="bubbleDate">—</div>
-    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas><div id="bubbleHoliday" class="holiday-bubble">🏖️</div></div>
+    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas></div>
     <div class="options" id="bubbleOptions">
       <button class="opt-btn" id="optEditLog">Edit logging</button>
       <button class="opt-btn" id="optFillMissing">Fill missing time</button>
@@ -289,7 +211,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "36";
+    const APP_VERSION = "v22.6";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -310,8 +232,10 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.36';
-    const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
+    const TARGET=504, KEY='hourlogger.v22.6';
+    const state=JSON.parse(localStorage.getItem(KEY)||'{}');
+    const byId = (id)=>document.getElementById(id);
+ state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
     const toDateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -432,7 +356,6 @@ html, body { overflow-x: hidden; }
         const wrap = document.createElement('div'); wrap.className='day-wrap';
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
         el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
-        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
         const canvas = document.createElement('canvas'); el.appendChild(canvas);
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
@@ -463,31 +386,16 @@ html, body { overflow-x: hidden; }
     function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
     function validTime(t){ return /^\\d{2}:\\d{2}$/.test(t); }
     const breaksPane=document.getElementById('breaksPane');
-    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
+    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ document.getElementById('computedTotal').textContent='0h 00m'; return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
-      const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){
-      const row=document.createElement('div'); row.className='break-item';
-      row.innerHTML = `
-        <div class="bi-name-block">
-          <label>Name</label>
-          <input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand">
-        </div>
-        <div class="bi-start-block">
-          <label>Start</label>
-          <input type="time" class="bi-start" value="${i.start||''}">
-        </div>
-        <div class="bi-stop-block">
-          <label>Stop</label>
-          <input type="time" class="bi-stop" value="${i.stop||''}">
-        </div>
-        <div class="bi-actions"><button class="btn small bi-del">Remove</button></div>`;
-      breaksPane.appendChild(row);
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal));
-      row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();});
-      computeTotal();
-    }); computeTotal(); }
-    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
+      const net=Math.max(0,work-bt); document.getElementById('computedTotal').textContent=fmtHM(net); return net; }
+    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
+      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
+      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
+    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; document.getElementById('computedTotal').textContent='0h 00m'; const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
     document.getElementById('logDate').addEventListener('change',e=>clearLoggerFor(e.target.value));
@@ -495,9 +403,9 @@ html, body { overflow-x: hidden; }
     document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
     document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
     document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
-    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
+    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){alert('Enter both start and stop times');return;}
       const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
-      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast('Day saved'); show('calendar'); });
+      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared'); toast('Day saved'); show('menu'); });
     document.getElementById('btnResetWork').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });
 
     // Bubble
@@ -507,21 +415,11 @@ html, body { overflow-x: hidden; }
       bubbleDate = ds;
       bubbleDateLbl.textContent = ds;
       const vw = window.innerWidth, vh = window.innerHeight;
-const bw = Math.min(360, vw - 32), bh = 200;
-bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-function positionBubbleLayout(){
-  const topSafe = Math.max(70, (innerWidth<420?60:80));
-  bubble.style.left = (vw/2 - bw/2) + 'px';
-  bubble.style.top  = topSafe + 'px';
-  bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-  bubbleOptions.style.top = (topSafe + bh + 12) + 'px';
-  const optRect = bubbleOptions.getBoundingClientRect();
-  bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 24) + 'px';
-}
-positionBubbleLayout();
-requestAnimationFrame(positionBubbleLayout);
-setTimeout(positionBubbleLayout, 100);
-window.addEventListener('resize', positionBubbleLayout, { once: true });
+      const bw = Math.min(360, vw - 32), bh = 200;
+      bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
+      bubbleOptions.style.top = (vh/2 + bh/2 + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      bubbleDetails.style.top = (vh/2 + bh/2 + 8 + 110) + 'px';
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
@@ -529,7 +427,6 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
       document.getElementById('dCompUsed').textContent= fmtHM(compUsed);
       document.getElementById('dOver').textContent  = fmtHM(Math.max(0,overtime));
 
-      const bhEl = document.getElementById('bubbleHoliday'); if (bhEl) bhEl.classList.toggle('show', !!isHoliday(ds));
       focusLayer.classList.add('active');
       if(navigator.vibrate){ navigator.vibrate(10); }
 
@@ -557,7 +454,7 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
     });
     document.getElementById('optResetDay').addEventListener('click',()=>{
       if(!bubbleDate) return;
-      const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
+      const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared'); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
     });
 
     // Service worker with "New version available — Refresh"
@@ -604,9 +501,9 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
       function saveDay(){
         try{
           const a=byId('startTime').value.trim(), b=byId('stopTime').value.trim();
-          /* allow empty save even without start/stop */
+          if(!validTime(a)||!validTime(b)){ alert('Enter both start and stop times'); return; }
           const ds = byId('logDate').value || (new Date()).toISOString().slice(0,10);
-          const net = (validTime(a) && validTime(b)) ? computeNet() : 0;
+          const net = computeNet();
           const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({
             name: it.querySelector('.bi-name')?.value.trim()||'',
             start: it.querySelector('.bi-start')?.value.trim()||'',
@@ -618,7 +515,7 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
           save();
           if (typeof renderMenu==='function') renderMenu();
           if (typeof renderWeek==='function') renderWeek();
-          if (typeof toast==='function') toast('Day saved'); if (typeof show==='function') show('calendar');
+          if (typeof toast==='function') toast('Day saved');
         } catch (e){
           console.error('Save failed', e);
           alert('Save failed. Please try again.');
