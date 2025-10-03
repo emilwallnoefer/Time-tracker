@@ -89,15 +89,6 @@
     .card.actions{ position: relative; }
     .card.actions .btn{ min-width: 44%; }
     .card.actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
-    /* Logger full centering */
-    #view-logger .card{ display:grid; justify-items:center; text-align:center }
-    #view-logger .card > *{ max-width:520px; width:100% }
-    #view-logger .row{ justify-content:center }
-    #view-logger .actions{ justify-content:center }
-
-    .line-stats{ display:flex; gap:8px; flex-wrap:wrap; }
-    .version.version-menu{ position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); text-align:center; z-index: 5; }
-
 
 
     /* Mobile polish */
@@ -131,17 +122,18 @@
   <section id="view-menu" class="view active fx-top"><div class="page-wrap">
     <div class="hero"><h1>Track your day</h1></div>
     <div class="cards">
+      <div class="pill" id="pillWeek">Weekly hours: 0h 00m</div>
+      <div class="pill" id="pillBank">Overtime bank: 0h 00m</div>
       <div class="card">
-        <div style="flex:1"><h3>Start logging</h3></div>
+        <div style="flex:1"><h3>Today’s logging</h3><p>Working time (-breaks), start/stop, breaks, save.</p></div>
         <button class="btn primary" id="goLogger">Open</button>
       </div>
       <div class="card">
-        <div style="flex:1"><h3>Calendar</h3></div>
+        <div style="flex:1"><h3>Calendar (weekly)</h3><p>Tap a day, bubble shows actions.</p></div>
         <button class="btn" id="goCalendar">Open</button>
       </div>
-      <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 23</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- CALENDAR -->
@@ -158,7 +150,7 @@
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- LOGGER -->
@@ -182,13 +174,15 @@
           <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
         </div>
       </div>
-      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="pill">Working time (-breaks)</span><strong id="computedTotal">0h 00m</strong>
+      </div>
     </div>
     <div class="card actions">
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger v22.6.2</div>
   </section>
 
   <!-- Focus bubble -->
@@ -217,7 +211,7 @@
   </div>
 
   <script>
-    const APP_VERSION = "23";
+    const APP_VERSION = "v22.6";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -238,7 +232,7 @@
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.23';
+    const TARGET=504, KEY='hourlogger.v22.6';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -392,7 +386,7 @@
     const breaksPane=document.getElementById('breaksPane');
     function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ document.getElementById('computedTotal').textContent='0h 00m'; return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
-      const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) document.getElementById('computedTotal').textContent=fmtHM(net); return net; }
+      const net=Math.max(0,work-bt); document.getElementById('computedTotal').textContent=fmtHM(net); return net; }
     function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
       <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
       <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
@@ -407,7 +401,7 @@
     document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
     document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
     document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
-    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){alert('Enter both start and stop times');return;}
+    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); let __validTimes = /^\d{2}:\d{2}$/.test(a)&&/^\d{2}:\d{2}$/.test(b); if(!__validTimes){ /* allow empty save */ }
       const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
       const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared'); toast('Day saved'); show('calendar'); });
     document.getElementById('btnResetWork').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });
@@ -505,9 +499,9 @@
       function saveDay(){
         try{
           const a=byId('startTime').value.trim(), b=byId('stopTime').value.trim();
-          if(!validTime(a)||!validTime(b)){ alert('Enter both start and stop times'); return; }
+          let __ok = validTime(a)&&validTime(b); /* allow saving with empty times */
           const ds = byId('logDate').value || (new Date()).toISOString().slice(0,10);
-          const net = computeNet();
+          const net = (validTime(a)&&validTime(b)) ? computeNet() : 0;
           const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({
             name: it.querySelector('.bi-name')?.value.trim()||'',
             start: it.querySelector('.bi-start')?.value.trim()||'',
@@ -519,7 +513,7 @@
           save();
           if (typeof renderMenu==='function') renderMenu();
           if (typeof renderWeek==='function') renderWeek();
-          if (typeof toast==='function') toast('Day saved');
+          if (typeof toast==='function') toast('Day saved'); if (typeof show==='function') show('calendar');
         } catch (e){
           console.error('Save failed', e);
           alert('Save failed. Please try again.');
