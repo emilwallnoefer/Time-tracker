@@ -132,6 +132,21 @@ html, body { overflow-x: hidden; }
     }
     .holiday-bubble.show{ display:grid; }
     
+
+/* v32 logger centering + sizing */
+#view-logger .time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;justify-items:center}
+#view-logger .time-grid > div{width:100%;max-width:220px}
+#view-logger input[type="time"]{ text-align:center }
+@media (max-width:380px){
+  #view-logger .time-grid > div{max-width:180px}
+}
+
+
+/* v32 breaks vertical UI */
+#breaksPane .break-item{ display:grid; gap:8px; max-width:320px; margin:8px auto; text-align:center }
+#breaksPane .bi-times{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+#breaksPane .bi-actions{ display:grid; place-items:center }
+
 </style>
 </head>
 <body>
@@ -162,7 +177,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 31</div>
+    <div class="version version-menu">Hour Logger 32</div>
   </section>
 
   <!-- CALENDAR -->
@@ -179,7 +194,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 31</div>
+    <div class="version">Hour Logger 32</div>
   </section>
 
   <!-- LOGGER -->
@@ -195,12 +210,12 @@ html, body { overflow-x: hidden; }
       </div>
     </div>
     <div class="card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="time-grid">
         <div><label><b>Start</b></label><input type="time" id="startTime"/><button class="btn small" id="btnStartNow" style="margin-top:8px;width:100%">Start now</button></div>
         <div><label><b>Stop</b></label><input type="time" id="stopTime"/><button class="btn small" id="btnStopNow" style="margin-top:8px;width:100%">Stop now</button></div>
         <div style="grid-column:1/-1;display:grid;gap:8px">
           <button class="btn small" id="btnAddBreak">+ Add break</button>
-          <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
+          <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto;display:block"></div>
         </div>
       </div>
       
@@ -209,7 +224,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 31</div>
+    <div class="version">Hour Logger 32</div>
   </section>
 
   <!-- Focus bubble -->
@@ -238,7 +253,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "31";
+    const APP_VERSION = "32";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -259,7 +274,7 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.31';
+    const TARGET=504, KEY='hourlogger.32';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -415,12 +430,23 @@ html, body { overflow-x: hidden; }
     function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
       const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
-      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
-      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
-      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
+    function addBreakRow(i={name:'',start:'',stop:''}){
+      const row=document.createElement('div'); row.className='break-item';
+      row.innerHTML = `
+        <div class="bi-name-block">
+          <label>Name</label>
+          <input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand">
+        </div>
+        <div class="bi-times">
+          <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+          <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+        </div>
+        <div class="bi-actions"><button class="btn small bi-del">Remove</button></div>`;
+      breaksPane.appendChild(row);
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal));
+      row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();});
+      computeTotal();
+    }); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
