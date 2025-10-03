@@ -475,9 +475,7 @@ html, body { overflow-x: hidden; }
         row.querySelector('.bi-start').value='';
         row.querySelector('.bi-stop').value='';
         computeTotal();
-      });
-      computeTotal();
-    }); computeTotal(); }
+      }); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
