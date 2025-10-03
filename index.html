@@ -133,18 +133,16 @@ html, body { overflow-x: hidden; }
     .holiday-bubble.show{ display:grid; }
     
 
-/* v33 logger centering + sizing */
+/* v34 logger layout fixes */
 #view-logger .time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;justify-items:center}
 #view-logger .time-grid > div{width:100%;max-width:220px}
 #view-logger input[type="time"]{ text-align:center }
-@media (max-width:380px){
-  #view-logger .time-grid > div{max-width:180px}
+@media (max-width:420px){
+  #view-logger .time-grid > div{max-width:170px}
 }
-
-
-/* v33 breaks vertical UI */
-#breaksPane .break-item{ display:grid; gap:8px; max-width:320px; margin:8px auto; text-align:center }
-#breaksPane .bi-times{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+/* v34 breaks vertical layout */
+#breaksPane .break-item{ display:grid; gap:8px; max-width:320px; margin:10px auto; text-align:center }
+#breaksPane .bi-times{ display:grid; gap:8px }
 #breaksPane .bi-actions{ display:grid; place-items:center }
 
 </style>
@@ -177,7 +175,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 33</div>
+    <div class="version version-menu">Hour Logger 34</div>
   </section>
 
   <!-- CALENDAR -->
@@ -194,7 +192,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 33</div>
+    <div class="version">Hour Logger 34</div>
   </section>
 
   <!-- LOGGER -->
@@ -215,7 +213,7 @@ html, body { overflow-x: hidden; }
         <div><label><b>Stop</b></label><input type="time" id="stopTime"/><button class="btn small" id="btnStopNow" style="margin-top:8px;width:100%">Stop now</button></div>
         <div style="grid-column:1/-1;display:grid;gap:8px">
           <button class="btn small" id="btnAddBreak">+ Add break</button>
-          <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto;display:block"></div>
+          <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
         </div>
       </div>
       
@@ -224,7 +222,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 33</div>
+    <div class="version">Hour Logger 34</div>
   </section>
 
   <!-- Focus bubble -->
@@ -253,7 +251,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "33";
+    const APP_VERSION = "34";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -274,7 +272,7 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.33';
+    const TARGET=504, KEY='hourlogger.34';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -438,8 +436,14 @@ html, body { overflow-x: hidden; }
           <input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand">
         </div>
         <div class="bi-times">
-          <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-          <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+          <div>
+            <label>Start</label>
+            <input type="time" class="bi-start" value="${i.start||''}">
+          </div>
+          <div>
+            <label>Stop</label>
+            <input type="time" class="bi-stop" value="${i.stop||''}">
+          </div>
         </div>
         <div class="bi-actions"><button class="btn small bi-del">Remove</button></div>`;
       breaksPane.appendChild(row);
