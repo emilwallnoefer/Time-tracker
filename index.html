@@ -154,6 +154,20 @@ html, body { overflow-x: hidden; }
   .card.actions .btn{ min-width:100% }
 }
 
+
+/* v35 breaks size-only adjustments */
+@media (max-width: 420px){
+  #breaksPane .break-item{ gap:6px }
+  #breaksPane .break-item > div{ min-width:0 } /* allow shrinking inside grid columns */
+  #breaksPane .bi-name-block input{ font-size:13px; padding:9px }
+  #breaksPane .bi-times input[type="time"]{ max-width:120px; font-size:13px; padding:9px; margin:0 auto; text-align:center }
+  #breaksPane .bi-actions .btn{ padding:7px 10px; font-size:12px; min-width:90px; white-space:nowrap }
+}
+@media (max-width: 360px){
+  #breaksPane .bi-times input[type="time"]{ max-width:110px }
+  #breaksPane .bi-actions .btn{ min-width:100px; padding:6px 9px; font-size:11px }
+}
+
 </style>
 </head>
 <body>
