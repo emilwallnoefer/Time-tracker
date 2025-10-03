@@ -148,7 +148,7 @@
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 23</div>
+    <div class="version version-menu">Hour Logger 24</div>
   </section>
 
   <!-- CALENDAR -->
@@ -165,7 +165,7 @@
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger 24</div>
   </section>
 
   <!-- LOGGER -->
@@ -195,7 +195,7 @@
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger 24</div>
   </section>
 
   <!-- Focus bubble -->
@@ -224,7 +224,7 @@
   </div>
 
   <script>
-    const APP_VERSION = "23";
+    const APP_VERSION = "24";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -245,7 +245,7 @@
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.23';
+    const TARGET=504, KEY='hourlogger.24';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
