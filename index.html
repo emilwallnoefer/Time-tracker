@@ -155,37 +155,46 @@ html, body { overflow-x: hidden; }
 }
 
 
-/* v36 breaks responsive layout (layout + pixel sizes) */
+/* v37 breaks layout + pixel tweaks */
+#breaksPane{ width:100%; max-height:220px; overflow:auto; }
 #breaksPane .break-item{
-  display:grid;
-  grid-template-columns:1.1fr 1fr 1fr auto; /* Name | Start | Stop | Remove */
+  display:grid !important;
+  grid-template-columns:1fr 1fr;
+  grid-template-areas:
+    "name name"
+    "start stop"
+    "actions actions";
   gap:8px;
   align-items:end;
-  margin:8px 0;
+  max-width: 420px;
+  margin:10px auto;
 }
-#breaksPane .break-item > *{ min-width:0 } /* allow shrinking inside columns */
-#breaksPane .break-item input[type="time"],
-#breaksPane .break-item input[type="text"]{ padding:9px; font-size:14px }
-#breaksPane .bi-actions .btn{ min-width:104px; padding:8px 10px; font-size:12px; white-space:nowrap }
+#breaksPane .break-item > *{ min-width:0 }
+#breaksPane .bi-name-block{ grid-area:name }
+#breaksPane .bi-start-block{ grid-area:start }
+#breaksPane .bi-stop-block{  grid-area:stop }
+#breaksPane .bi-actions{ grid-area:actions; display:grid; place-items:center }
+#breaksPane .bi-actions .btn{ min-width: 160px; padding:8px 12px; font-size:12px }
 
-@media (max-width: 460px){
-  #breaksPane .break-item{
-    grid-template-columns:1fr 1fr;
-    grid-template-areas:
-      "name name"
-      "start stop"
-      "actions actions";
-    gap:8px;
-  }
-  #breaksPane .bi-name-block{ grid-area:name }
-  #breaksPane .bi-start-block{ grid-area:start }
-  #breaksPane .bi-stop-block{  grid-area:stop }
-  #breaksPane .bi-actions{ grid-area:actions; display:grid; place-items:center }
-  #breaksPane .bi-actions .btn{ min-width:120px }
+#breaksPane input[type="text"]{ font-size:14px; padding:9px }
+#breaksPane input[type="time"]{ font-size:14px; padding:9px; text-align:center; max-width:160px; margin:0 auto }
+
+@media (max-width: 380px){
+  #breaksPane .break-item{ max-width: 340px; gap:6px }
+  #breaksPane input[type="time"]{ max-width:140px; font-size:13px; padding:8px }
+  #breaksPane .bi-actions .btn{ min-width: 140px; padding:7px 10px; font-size:12px }
 }
-@media (max-width: 360px){
-  #breaksPane .break-item input[type="time"]{ font-size:13px; padding:8px }
-  #breaksPane .bi-actions .btn{ min-width:100%; }
+@media (max-width: 340px){
+  #breaksPane .break-item{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "name"
+      "start"
+      "stop"
+      "actions";
+  }
+  #breaksPane input[type="time"]{ max-width: 100%; }
+  #breaksPane .bi-actions .btn{ width:100% }
 }
 
 </style>
@@ -218,7 +227,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 36</div>
+    <div class="version version-menu">Hour Logger 37</div>
   </section>
 
   <!-- CALENDAR -->
@@ -235,7 +244,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 36</div>
+    <div class="version">Hour Logger 37</div>
   </section>
 
   <!-- LOGGER -->
@@ -265,7 +274,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 36</div>
+    <div class="version">Hour Logger 37</div>
   </section>
 
   <!-- Focus bubble -->
@@ -294,7 +303,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "36";
+    const APP_VERSION = "37";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -315,7 +324,7 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.36';
+    const TARGET=504, KEY='hourlogger.37';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
