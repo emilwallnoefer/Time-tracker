@@ -55,7 +55,7 @@
     .day .n{position:absolute;top:8px;left:10px;font-size:11px;font-weight:700;z-index:2;text-shadow:0 2px 6px #0008}
     .day .h{position:absolute;bottom:8px;right:10px;font-weight:700;font-size:11px;z-index:2;text-shadow:0 2px 6px #0008}
     .day .pct{position:absolute;bottom:8px;left:10px;font-weight:700;font-size:11px;z-index:2;opacity:.9;text-shadow:0 2px 6px #0008}
-    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none }
+    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none }
 
     .cal-footer{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--stroke);margin-top:6px;font-size:12px}
 
@@ -96,20 +96,7 @@
     #view-logger .actions{ justify-content:center }
 
     .line-stats{ display:flex; gap:8px; flex-wrap:wrap; }
-
-    /* week-head center */
-    .week-head{ grid-template-columns: 1fr; place-items:center; text-align:center }
-    .week-nav{ margin-top:6px }
-    .cal-footer{ justify-content:center }
-    
     .version.version-menu{ position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); text-align:center; z-index: 5; }
-
-    .day .holiday{
-      position:absolute; inset:0; display:grid; place-items:center;
-      font-size:42px; opacity:.09; z-index:1; pointer-events:none;
-      text-shadow: 0 2px 8px rgba(0,0,0,.25);
-    }
-    
 
 
 
@@ -373,7 +360,6 @@
         const wrap = document.createElement('div'); wrap.className='day-wrap';
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
         el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
-        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
         const canvas = document.createElement('canvas'); el.appendChild(canvas);
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
@@ -407,20 +393,12 @@
     function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
       const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){
-      const row=document.createElement('div'); row.className='break-item';
-      row.innerHTML = `
-        <div class="bi-name-block"><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
-        <div class="bi-times">
-          <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-          <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
-        </div>
-        <div class="bi-actions"><button class="btn small bi-del">Remove</button></div>`;
-      breaksPane.appendChild(row);
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal));
-      row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();});
-      computeTotal();
-    }); computeTotal(); }
+    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
+      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
+      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
@@ -443,9 +421,9 @@
       const vw = window.innerWidth, vh = window.innerHeight;
       const bw = Math.min(360, vw - 32), bh = 200;
       bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (Math.max(70, (innerWidth<420?60:80))) + 'px';
-      bubbleOptions.style.top = (parseFloat(bubble.style.top) + bh + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-      const optRect = bubbleOptions.getBoundingClientRect(); bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + optRect.height + 8) + 'px';
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
+      bubbleOptions.style.top = (vh/2 + bh/2 + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      bubbleDetails.style.top = (vh/2 + bh/2 + 8 + 110) + 'px';
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
