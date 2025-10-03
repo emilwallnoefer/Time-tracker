@@ -390,16 +390,16 @@
     function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
     function validTime(t){ return /^\\d{2}:\\d{2}$/.test(t); }
     const breaksPane=document.getElementById('breaksPane');
-    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ document.getElementById('computedTotal').textContent='0h 00m'; return 0; }
+    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
-      const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) document.getElementById('computedTotal').textContent=fmtHM(net); return net; }
+      const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
     function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
       <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
       <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
       <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
       <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
       row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
-    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; document.getElementById('computedTotal').textContent='0h 00m'; const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
+    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
     document.getElementById('logDate').addEventListener('change',e=>clearLoggerFor(e.target.value));
@@ -407,9 +407,9 @@
     document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
     document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
     document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
-    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){alert('Enter both start and stop times');return;}
+    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
       const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
-      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared'); toast('Day saved'); show('calendar'); });
+      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast('Day saved'); show('calendar'); });
     document.getElementById('btnResetWork').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });
 
     // Bubble
@@ -458,7 +458,7 @@
     });
     document.getElementById('optResetDay').addEventListener('click',()=>{
       if(!bubbleDate) return;
-      const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared'); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
+      const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
     });
 
     // Service worker with "New version available — Refresh"
@@ -505,9 +505,9 @@
       function saveDay(){
         try{
           const a=byId('startTime').value.trim(), b=byId('stopTime').value.trim();
-          if(!validTime(a)||!validTime(b)){ alert('Enter both start and stop times'); return; }
+          /* allow empty save even without start/stop */
           const ds = byId('logDate').value || (new Date()).toISOString().slice(0,10);
-          const net = computeNet();
+          const net = (validTime(a) && validTime(b)) ? computeNet() : 0;
           const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({
             name: it.querySelector('.bi-name')?.value.trim()||'',
             start: it.querySelector('.bi-start')?.value.trim()||'',
@@ -519,7 +519,7 @@
           save();
           if (typeof renderMenu==='function') renderMenu();
           if (typeof renderWeek==='function') renderWeek();
-          if (typeof toast==='function') toast('Day saved');
+          if (typeof toast==='function') toast('Day saved'); if (typeof show==='function') show('calendar');
         } catch (e){
           console.error('Save failed', e);
           alert('Save failed. Please try again.');
