@@ -97,6 +97,22 @@
 
     .line-stats{ display:flex; gap:8px; flex-wrap:wrap; }
     .version.version-menu{ position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); text-align:center; z-index: 5; }
+    /* Holiday overlay in Logger */
+    #view-logger .holiday-overlay{
+      position:absolute; inset:0; display:none; place-items:center; pointer-events:none; z-index:0;
+      font-size:96px; opacity:.10; filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
+    }
+    #view-logger .holiday-overlay.show{ display:grid; }
+    /* Holiday marker on calendar day */
+    .day .holiday{
+      position:absolute; inset:0; display:grid; place-items:center; font-size:56px; opacity:.16; z-index:3; pointer-events:none;
+      text-shadow: 0 4px 12px rgba(0,0,0,.35);
+    }
+    /* Center calendar header & make strip obviously scrollable */
+    .week-head{ grid-template-columns: 1fr; place-items:center; text-align:center }
+    .week-nav{ margin-top:6px }
+    .week-strip{ margin: 0 auto; }
+
 
 
 
@@ -156,13 +172,13 @@
         </div>
       </div>
       <div id="weekStrip" class="week-strip"></div>
-      <div class="cal-footer" id="calFooter"></div>
+      <div class="cal-footer" id="calFooter" style="justify-content:center"></div>
     </div>
     <div class="version">Hour Logger 23</div>
   </section>
 
   <!-- LOGGER -->
-  <section id="view-logger" class="view fx-top"><div class="page-wrap">
+  <section id="view-logger" class="view fx-top"><div class="page-wrap"><div id="loggerHolidayOverlay" class="holiday-overlay">🏖️</div>
     <div class="card">
       <label>Date</label>
       <input type="date" id="logDate" />
@@ -337,6 +353,14 @@
 
     function renderMenu(){ const ws=startOfWeekMon(new Date()); let sum=0; for(let i=0;i<7;i++){ sum+=workMins(toDateStr(addDays(ws,i))); } document.getElementById('pillWeek').textContent='Weekly hours: '+fmtHM(sum); document.getElementById('pillBank').textContent='Overtime bank: '+fmtSignedHM(overtimeBank()); }
 
+    
+    function updateHolidayOverlay(){
+      const ov = document.getElementById('loggerHolidayOverlay');
+      if(!ov) return;
+      const checked = document.getElementById('holidayFlag').checked;
+      ov.classList.toggle('show', !!checked);
+    }
+
     // Calendar
     const weekTitle=document.getElementById('wTitle'), weekStrip=document.getElementById('weekStrip'), calFooter=document.getElementById('calFooter'); let weekStart=startOfWeekMon(new Date());
     const dayControllers = new Map();
@@ -360,6 +384,7 @@
         const wrap = document.createElement('div'); wrap.className='day-wrap';
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
         el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
+        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
         const canvas = document.createElement('canvas'); el.appendChild(canvas);
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
@@ -401,11 +426,12 @@
       row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
-    function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
-    document.getElementById('logDate').addEventListener('change',e=>clearLoggerFor(e.target.value));
+    function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); updateHolidayOverlay(); }
+    document.getElementById('logDate').addEventListener('change',e=>{ clearLoggerFor(e.target.value); updateHolidayOverlay(); });
     document.getElementById('btnStartNow').addEventListener('click',()=>{document.getElementById('startTime').value=nowHHMM(); computeTotal();});
     document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
     document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
+    document.getElementById('holidayFlag').addEventListener('change', updateHolidayOverlay);
     document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
     document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
       const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
@@ -421,9 +447,9 @@
       const vw = window.innerWidth, vh = window.innerHeight;
       const bw = Math.min(360, vw - 32), bh = 200;
       bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
-      bubbleOptions.style.top = (vh/2 + bh/2 + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-      bubbleDetails.style.top = (vh/2 + bh/2 + 8 + 110) + 'px';
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (Math.max(70, (innerWidth<420?60:80))) + 'px';
+      bubbleOptions.style.top = (parseFloat(bubble.style.top) + bh + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + 110) + 'px';
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
