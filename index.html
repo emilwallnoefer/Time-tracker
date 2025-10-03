@@ -18,7 +18,7 @@
     html,body{height:100%}
     body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);position:relative;overflow-x:hidden}
     #fxCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(10px)}
-    .fx-top{position:relative;z-index:1;max-width:860px;margin:0 auto}
+    .fx-top{position:relative;z-index:1;width:100%;margin:0 auto}
 
     .topbar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px var(--pad);background:#0f1118aa;border-bottom:1px solid var(--stroke);backdrop-filter:saturate(180%) blur(8px);z-index:10}
     .title{font-weight:800; font-size:18px; text-align:center; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -84,14 +84,14 @@
     .update-banner.show{ display:flex }
     .version{ text-align:center; color:var(--muted); font-size:11px; margin:12px 0 6px }
     /* Page centering + safe bottom space */
-    .page-wrap{ max-width: 560px; margin: 0 auto; display: grid; gap: 12px; }
+    .page-wrap{ width:100%; margin: 0 auto; display: grid; gap: 12px; }
     .view{ padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); }
     .card.actions{ position: relative; }
     .card.actions .btn{ min-width: 44%; }
     .card.actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
     /* Logger full centering */
     #view-logger .card{ display:grid; justify-items:center; text-align:center }
-    #view-logger .card > *{ max-width:520px; width:100% }
+    #view-logger .card > *{ width:100%; width:100% }
     #view-logger .row{ justify-content:center }
     #view-logger .actions{ justify-content:center }
 
@@ -145,7 +145,7 @@ html, body { overflow-x: hidden; }
   #view-logger input[type="number"]{ font-size:14px; padding:9px }
   /* target the inline grid (start/stop) without changing structure */
   #view-logger .card > div[style*="grid-template-columns"]{ gap:8px }
-  #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:160px; margin:0 auto }
+  #view-logger .card > div[style*="grid-template-columns"] > div{ width:100%; margin:0 auto }
   /* action buttons wrap more gracefully */
   .card.actions .btn{ min-width:48% }
 }
@@ -155,20 +155,20 @@ html, body { overflow-x: hidden; }
 }
 
 
-/* v39 breaks minimal vertical layout */
-#breaksPane{ width:100%; max-height:260px; overflow:auto; }
-.break-item{ display:grid; gap:8px; max-width:420px; margin:10px auto; }
+/* v40 breaks full-width minimal layout */
+#breaksPane{ width:100%; max-height:300px; overflow:auto; }
+.break-item{ display:grid; gap:8px; width:100%; margin:10px 0; }
 .break-item .bi-name-block input{ font-size:14px; padding:10px }
 .break-item .bi-times{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
-.break-item .bi-times input{ text-align:center; font-size:14px; padding:10px }
-.break-item .bi-reset{ width:100%; padding:10px 12px; }
+.break-item .bi-times input{ width:100%; text-align:center; font-size:14px; padding:10px }
+.break-item .bi-remove{ width:100%; padding:10px 12px; }
+
+/* small phones */
 @media (max-width:420px){
-  .break-item{ max-width:360px }
   .break-item .bi-times{ gap:6px }
   .break-item .bi-name-block input, .break-item .bi-times input{ font-size:13px; padding:9px }
 }
 @media (max-width:360px){
-  .break-item{ max-width:320px }
   .break-item .bi-times{ grid-template-columns:1fr; }
 }
 
@@ -202,7 +202,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 39</div>
+    <div class="version version-menu">Hour Logger 40</div>
   </section>
 
   <!-- CALENDAR -->
@@ -219,7 +219,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 39</div>
+    <div class="version">Hour Logger 40</div>
   </section>
 
   <!-- LOGGER -->
@@ -249,7 +249,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 39</div>
+    <div class="version">Hour Logger 40</div>
   </section>
 
   <!-- Focus bubble -->
@@ -278,7 +278,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "39";
+    const APP_VERSION = "40";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -299,7 +299,7 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.39';
+    const TARGET=504, KEY='hourlogger.40';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -466,16 +466,11 @@ html, body { overflow-x: hidden; }
           <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
           <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
         </div>
-        <div><button class="btn small bi-reset">Reset break</button></div>`;
+        <div><button class="btn small bi-remove">Remove break</button></div>`;
       breaksPane.appendChild(row);
       const onChange=()=>computeTotal();
       row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onChange));
-      row.querySelector('.bi-reset').addEventListener('click',()=>{
-        row.querySelector('.bi-name').value='';
-        row.querySelector('.bi-start').value='';
-        row.querySelector('.bi-stop').value='';
-        computeTotal();
-      }); computeTotal(); }
+      row.querySelector('.bi-remove').addEventListener('click',()=>{ row.remove(); computeTotal(); }); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
