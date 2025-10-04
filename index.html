@@ -202,7 +202,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 40</div>
+    <div class="version version-menu">Hour Logger 41</div>
   </section>
 
   <!-- CALENDAR -->
@@ -219,7 +219,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 40</div>
+    <div class="version">Hour Logger 41</div>
   </section>
 
   <!-- LOGGER -->
@@ -249,7 +249,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 40</div>
+    <div class="version">Hour Logger 41</div>
   </section>
 
   <!-- Focus bubble -->
@@ -278,7 +278,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "40";
+    const APP_VERSION = "41";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -299,7 +299,7 @@ html, body { overflow-x: hidden; }
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.40';
+    const TARGET=504, KEY='hourlogger.41';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -325,20 +325,180 @@ html, body { overflow-x: hidden; }
     addEventListener('resize',()=>{resizeFX();initParticles();}); resizeFX(); initParticles(); drawFX();
 
     // Sand + water renderer (cracks removed)
-    function SandWater(canvas, worked, compUsed, overtime){
-      const ctx = canvas.getContext('2d');
-      let raf=0, t=0, DPR=1, w=0, h=0;
-      const bubblesBottom=[], bubblesTop=[];
+    
+function SandWater(canvas, worked, compUsed, overtime){
+  const ctx = canvas.getContext('2d');
+  let raf=0, t=0, DPR=1, w=0, h=0;
+  // Targets expressed as heights for lower/upper halves
+  let targetSand=0, targetComp=0, targetOver=0;
+  // Animation progress (0..1) for sequential rise: sand -> water(comp) -> water(overtime)
+  let pSand=0, pComp=0, pOver=0;
+  const speed = 1.2; // higher = faster fill
+  // Static sand texture (grainy but not moving)
+  let sandPattern=null, sandSeed=Math.random()*1000;
 
-      function size(){
-        DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-        const cw = Math.max(1, canvas.clientWidth|0);
-        const ch = Math.max(1, canvas.clientHeight|0);
-        w = canvas.width  = Math.floor(cw * DPR);
-        h = canvas.height = Math.floor(ch * DPR);
+  function size(){
+    DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    const cw = Math.max(1, canvas.clientWidth|0);
+    const ch = Math.max(1, canvas.clientHeight|0);
+    w = canvas.width  = Math.floor(cw * DPR);
+    h = canvas.height = Math.floor(ch * DPR);
+    buildTargets();
+    buildSandPattern();
+  }
+  function buildTargets(){
+    const half = h*0.5;
+    targetSand = Math.min(half, half * (worked / 504));
+    targetComp = Math.min(Math.max(0, half - targetSand), half * (compUsed / 504));
+    targetOver = Math.min(half, half * (Math.max(0,overtime) / 504));
+    // reset progress on resize/restart
+    pSand = 0; pComp = 0; pOver = 0; t = 0;
+  }
+  function buildSandPattern(){
+    const tex = document.createElement('canvas');
+    tex.width = 96; tex.height = 96;
+    const c = tex.getContext('2d');
+    // base
+    c.fillStyle = '#cdb886';
+    c.fillRect(0,0,tex.width,tex.height);
+    // noise speckles
+    for(let i=0;i<1200;i++){
+      const x = Math.floor((Math.sin(i*12.9898+sandSeed)*43758.5453)%1 * tex.width) >>> 0;
+      const y = Math.floor((Math.sin(i*78.233 + sandSeed*1.3)*43758.5453)%1 * tex.height) >>> 0;
+      c.fillStyle = `rgba(120,100,60,${0.15 + ((i%7)/50)})`;
+      c.fillRect(x,y,1,1);
+    }
+    // small grains
+    c.fillStyle = 'rgba(90,70,30,0.18)';
+    for(let j=0;j<260;j++){
+      const x = Math.random()*tex.width, y = Math.random()*tex.height, r = Math.random()*1.2+0.3;
+      c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    }
+    sandPattern = ctx.createPattern(tex, 'repeat');
+  }
+
+  // Static crest noise for sand top (uneven even at 100%), depends only on x
+  function crestY(baseY, x){
+    const nx = (x / (w||1));
+    const a = Math.sin((nx*8.0 + sandSeed)*Math.PI*2)*0.6;
+    const b = Math.sin((nx*15.0 + sandSeed*0.7)*Math.PI*2)*0.4;
+    const c = Math.sin((nx*28.0 + sandSeed*1.3)*Math.PI*2)*0.25;
+    return baseY - (a + b + c) * 3 * DPR; //  ~3px variation
+  }
+
+  function draw(){
+    // advance time
+    const dt = 0.016;
+    t += dt;
+    ctx.clearRect(0,0,w,h);
+    const half = h*0.5;
+
+    // Animate sequentially: sand first, then comp water, then overtime water
+    if(pSand < 1){ pSand = Math.min(1, pSand + dt*speed); }
+    else if(pComp < 1 && targetComp>0){ pComp = Math.min(1, pComp + dt*speed); }
+    else if(pOver < 1 && targetOver>0){ pOver = Math.min(1, pOver + dt*speed); }
+
+    const sandH = targetSand * easeOutCubic(pSand);
+    const compH = targetComp * easeOutCubic(pComp);
+    const overH = targetOver * easeOutCubic(pOver);
+
+    // ----- SAND (lower half) -----
+    if (sandH>0){
+      const baseTop = h - sandH;
+      // Sand shape with uneven crest
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, crestY(baseTop, 0));
+      for(let x=0; x<=w; x+=3*DPR){
+        ctx.lineTo(x, crestY(baseTop, x));
       }
-      function spawn(arr, area, count){ for(let i=0;i<count;i++){ arr.push({ x: area.x + Math.random()*area.w, y: area.y + area.h + Math.random()*10, r: 1 + Math.random()*2, vy: -(0.15+Math.random()*0.35)*DPR, drift:(Math.random()*0.4-0.2)*DPR }); } }
-      function noise(y){ return (Math.sin(y*0.07 + t*0.8) + Math.sin(y*0.03 + t*0.6 + 2))/2; }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      // Gradient base + static pattern overlay
+      const grd = ctx.createLinearGradient(0, baseTop, 0, h);
+      grd.addColorStop(0,'#daca9b');
+      grd.addColorStop(1,'#b8965b');
+      ctx.fillStyle = grd;
+      ctx.fill();
+      if(sandPattern){
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = sandPattern;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    }
+
+    // ----- WATER (compensation) lower half over sand -----
+    if (compH>0){
+      const areaY = h - sandH - compH;
+      const waveY = areaY + 6*DPR + Math.sin(t*1.8)*2*DPR;
+      // body
+      const grdW=ctx.createLinearGradient(0,areaY,0,areaY+compH);
+      grdW.addColorStop(0,'rgba(100,180,255,0.55)');
+      grdW.addColorStop(1,'rgba(30,90,180,0.7)');
+      ctx.fillStyle=grdW; ctx.fillRect(0,areaY,w,compH);
+      // crest (waves)
+      ctx.beginPath(); ctx.moveTo(0,waveY);
+      for(let x=0;x<=w;x+=4*DPR){
+        const y=waveY + Math.sin(x*0.04 + t*2.2)*2*DPR + Math.sin(x*0.025 + t*1.7)*1.2*DPR;
+        ctx.lineTo(x,y);
+      }
+      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
+      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+      // bubbles rising
+      drawBubbles(areaY, compH, 28, 2);
+    }
+
+    // ----- WATER (overtime) upper half -----
+    if (overH>0){
+      const areaY = half - overH;
+      const waveY = areaY + 6*DPR + Math.sin(t*2.0)*2*DPR;
+      const grdW2=ctx.createLinearGradient(0,areaY,0,areaY+overH);
+      grdW2.addColorStop(0,'rgba(120,200,255,0.55)');
+      grdW2.addColorStop(1,'rgba(10,70,160,0.75)');
+      ctx.fillStyle=grdW2; ctx.fillRect(0,areaY,w,overH);
+      ctx.beginPath(); ctx.moveTo(0,waveY);
+      for(let x=0;x<=w;x+=4*DPR){
+        const y=waveY + Math.sin(x*0.05 + t*2.0)*2*DPR + Math.sin(x*0.03 + t*1.6)*1.2*DPR;
+        ctx.lineTo(x,y);
+      }
+      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
+      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+      drawBubbles(areaY, overH, 18, 1);
+    }
+
+    // Midline (subtle)
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1*DPR;
+    ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke();
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  function drawBubbles(areaY, height, maxCount, rate){
+    // lightweight bubbles; static arrays not needed—no need to store between frames
+    for(let i=0;i<maxCount;i++){
+      const x = Math.random()*w;
+      let y = areaY + height - Math.random()*height;
+      const r = 0.8*DPR + Math.random()*1.6*DPR;
+      // rising path
+      y -= (Math.sin((t+i)*0.8)+1)*2*DPR;
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.35)';
+      ctx.fill();
+    }
+  }
+
+  function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
+
+  function start(){ cancel(); size(); raf = requestAnimationFrame(draw); }
+  function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
+  const ro = new ResizeObserver(()=>start()); ro.observe(canvas);
+  requestAnimationFrame(start);
+  return { cancel, start };
+}
 
       function draw(){
         t += 0.016;
