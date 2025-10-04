@@ -18,7 +18,7 @@
     html,body{height:100%}
     body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);position:relative;overflow-x:hidden}
     #fxCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(10px)}
-    .fx-top{position:relative;z-index:1;width:100%;margin:0 auto}
+    .fx-top{position:relative;z-index:1;max-width:860px;margin:0 auto}
 
     .topbar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px var(--pad);background:#0f1118aa;border-bottom:1px solid var(--stroke);backdrop-filter:saturate(180%) blur(8px);z-index:10}
     .title{font-weight:800; font-size:18px; text-align:center; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -84,14 +84,14 @@
     .update-banner.show{ display:flex }
     .version{ text-align:center; color:var(--muted); font-size:11px; margin:12px 0 6px }
     /* Page centering + safe bottom space */
-    .page-wrap{ width:100%; margin: 0 auto; display: grid; gap: 12px; }
+    .page-wrap{ max-width: 560px; margin: 0 auto; display: grid; gap: 12px; }
     .view{ padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); }
     .card.actions{ position: relative; }
     .card.actions .btn{ min-width: 44%; }
     .card.actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
     /* Logger full centering */
     #view-logger .card{ display:grid; justify-items:center; text-align:center }
-    #view-logger .card > *{ width:100%; width:100% }
+    #view-logger .card > *{ max-width:520px; width:100% }
     #view-logger .row{ justify-content:center }
     #view-logger .actions{ justify-content:center }
 
@@ -145,31 +145,13 @@ html, body { overflow-x: hidden; }
   #view-logger input[type="number"]{ font-size:14px; padding:9px }
   /* target the inline grid (start/stop) without changing structure */
   #view-logger .card > div[style*="grid-template-columns"]{ gap:8px }
-  #view-logger .card > div[style*="grid-template-columns"] > div{ width:100%; margin:0 auto }
+  #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:160px; margin:0 auto }
   /* action buttons wrap more gracefully */
   .card.actions .btn{ min-width:48% }
 }
 @media (max-width: 360px){
   #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:150px }
   .card.actions .btn{ min-width:100% }
-}
-
-
-/* v40 breaks full-width minimal layout */
-#breaksPane{ width:100%; max-height:300px; overflow:auto; }
-.break-item{ display:grid; gap:8px; width:100%; margin:10px 0; }
-.break-item .bi-name-block input{ font-size:14px; padding:10px }
-.break-item .bi-times{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
-.break-item .bi-times input{ width:100%; text-align:center; font-size:14px; padding:10px }
-.break-item .bi-remove{ width:100%; padding:10px 12px; }
-
-/* small phones */
-@media (max-width:420px){
-  .break-item .bi-times{ gap:6px }
-  .break-item .bi-name-block input, .break-item .bi-times input{ font-size:13px; padding:9px }
-}
-@media (max-width:360px){
-  .break-item .bi-times{ grid-template-columns:1fr; }
 }
 
 </style>
@@ -202,7 +184,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 41</div>
+    <div class="version version-menu">Hour Logger 35</div>
   </section>
 
   <!-- CALENDAR -->
@@ -219,7 +201,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 41</div>
+    <div class="version">Hour Logger 35</div>
   </section>
 
   <!-- LOGGER -->
@@ -239,7 +221,7 @@ html, body { overflow-x: hidden; }
         <div><label><b>Start</b></label><input type="time" id="startTime"/><button class="btn small" id="btnStartNow" style="margin-top:8px;width:100%">Start now</button></div>
         <div><label><b>Stop</b></label><input type="time" id="stopTime"/><button class="btn small" id="btnStopNow" style="margin-top:8px;width:100%">Stop now</button></div>
         <div style="grid-column:1/-1;display:grid;gap:8px">
-          <button class="btn small" id="btnAddBreak">Add break</button>
+          <button class="btn small" id="btnAddBreak">+ Add break</button>
           <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
         </div>
       </div>
@@ -249,7 +231,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 41</div>
+    <div class="version">Hour Logger 35</div>
   </section>
 
   <!-- Focus bubble -->
@@ -278,7 +260,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "41";
+    const APP_VERSION = "35";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -295,11 +277,11 @@ html, body { overflow-x: hidden; }
     const setTheme = t => { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('hourlogger.theme', t); };
     setTheme(localStorage.getItem('hourlogger.theme') || 'dark');
     menuBtn.addEventListener('click', ()=> menuDD.classList.toggle('show'));
-    mLight.addEventListener('click', ()=>{ setTheme('light'); menuDD.classList.remove('show'); });
-    mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
+    mLight.addEventListener('click', ()=>{ setTheme('light'); menuDD.classList.remove('show'); });})();
+    mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });})();
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.41';
+    const TARGET=504, KEY='hourlogger.35';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -325,180 +307,20 @@ html, body { overflow-x: hidden; }
     addEventListener('resize',()=>{resizeFX();initParticles();}); resizeFX(); initParticles(); drawFX();
 
     // Sand + water renderer (cracks removed)
-    
-function SandWater(canvas, worked, compUsed, overtime){
-  const ctx = canvas.getContext('2d');
-  let raf=0, t=0, DPR=1, w=0, h=0;
-  // Targets expressed as heights for lower/upper halves
-  let targetSand=0, targetComp=0, targetOver=0;
-  // Animation progress (0..1) for sequential rise: sand -> water(comp) -> water(overtime)
-  let pSand=0, pComp=0, pOver=0;
-  const speed = 1.2; // higher = faster fill
-  // Static sand texture (grainy but not moving)
-  let sandPattern=null, sandSeed=Math.random()*1000;
+    function SandWater(canvas, worked, compUsed, overtime){
+      const ctx = canvas.getContext('2d');
+      let raf=0, t=0, DPR=1, w=0, h=0;
+      const bubblesBottom=[], bubblesTop=[];
 
-  function size(){
-    DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-    const cw = Math.max(1, canvas.clientWidth|0);
-    const ch = Math.max(1, canvas.clientHeight|0);
-    w = canvas.width  = Math.floor(cw * DPR);
-    h = canvas.height = Math.floor(ch * DPR);
-    buildTargets();
-    buildSandPattern();
-  }
-  function buildTargets(){
-    const half = h*0.5;
-    targetSand = Math.min(half, half * (worked / 504));
-    targetComp = Math.min(Math.max(0, half - targetSand), half * (compUsed / 504));
-    targetOver = Math.min(half, half * (Math.max(0,overtime) / 504));
-    // reset progress on resize/restart
-    pSand = 0; pComp = 0; pOver = 0; t = 0;
-  }
-  function buildSandPattern(){
-    const tex = document.createElement('canvas');
-    tex.width = 96; tex.height = 96;
-    const c = tex.getContext('2d');
-    // base
-    c.fillStyle = '#cdb886';
-    c.fillRect(0,0,tex.width,tex.height);
-    // noise speckles
-    for(let i=0;i<1200;i++){
-      const x = Math.floor((Math.sin(i*12.9898+sandSeed)*43758.5453)%1 * tex.width) >>> 0;
-      const y = Math.floor((Math.sin(i*78.233 + sandSeed*1.3)*43758.5453)%1 * tex.height) >>> 0;
-      c.fillStyle = `rgba(120,100,60,${0.15 + ((i%7)/50)})`;
-      c.fillRect(x,y,1,1);
-    }
-    // small grains
-    c.fillStyle = 'rgba(90,70,30,0.18)';
-    for(let j=0;j<260;j++){
-      const x = Math.random()*tex.width, y = Math.random()*tex.height, r = Math.random()*1.2+0.3;
-      c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
-    }
-    sandPattern = ctx.createPattern(tex, 'repeat');
-  }
-
-  // Static crest noise for sand top (uneven even at 100%), depends only on x
-  function crestY(baseY, x){
-    const nx = (x / (w||1));
-    const a = Math.sin((nx*8.0 + sandSeed)*Math.PI*2)*0.6;
-    const b = Math.sin((nx*15.0 + sandSeed*0.7)*Math.PI*2)*0.4;
-    const c = Math.sin((nx*28.0 + sandSeed*1.3)*Math.PI*2)*0.25;
-    return baseY - (a + b + c) * 3 * DPR; //  ~3px variation
-  }
-
-  function draw(){
-    // advance time
-    const dt = 0.016;
-    t += dt;
-    ctx.clearRect(0,0,w,h);
-    const half = h*0.5;
-
-    // Animate sequentially: sand first, then comp water, then overtime water
-    if(pSand < 1){ pSand = Math.min(1, pSand + dt*speed); }
-    else if(pComp < 1 && targetComp>0){ pComp = Math.min(1, pComp + dt*speed); }
-    else if(pOver < 1 && targetOver>0){ pOver = Math.min(1, pOver + dt*speed); }
-
-    const sandH = targetSand * easeOutCubic(pSand);
-    const compH = targetComp * easeOutCubic(pComp);
-    const overH = targetOver * easeOutCubic(pOver);
-
-    // ----- SAND (lower half) -----
-    if (sandH>0){
-      const baseTop = h - sandH;
-      // Sand shape with uneven crest
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(0, h);
-      ctx.lineTo(0, crestY(baseTop, 0));
-      for(let x=0; x<=w; x+=3*DPR){
-        ctx.lineTo(x, crestY(baseTop, x));
+      function size(){
+        DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+        const cw = Math.max(1, canvas.clientWidth|0);
+        const ch = Math.max(1, canvas.clientHeight|0);
+        w = canvas.width  = Math.floor(cw * DPR);
+        h = canvas.height = Math.floor(ch * DPR);
       }
-      ctx.lineTo(w, h);
-      ctx.closePath();
-      // Gradient base + static pattern overlay
-      const grd = ctx.createLinearGradient(0, baseTop, 0, h);
-      grd.addColorStop(0,'#daca9b');
-      grd.addColorStop(1,'#b8965b');
-      ctx.fillStyle = grd;
-      ctx.fill();
-      if(sandPattern){
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = sandPattern;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-      ctx.restore();
-    }
-
-    // ----- WATER (compensation) lower half over sand -----
-    if (compH>0){
-      const areaY = h - sandH - compH;
-      const waveY = areaY + 6*DPR + Math.sin(t*1.8)*2*DPR;
-      // body
-      const grdW=ctx.createLinearGradient(0,areaY,0,areaY+compH);
-      grdW.addColorStop(0,'rgba(100,180,255,0.55)');
-      grdW.addColorStop(1,'rgba(30,90,180,0.7)');
-      ctx.fillStyle=grdW; ctx.fillRect(0,areaY,w,compH);
-      // crest (waves)
-      ctx.beginPath(); ctx.moveTo(0,waveY);
-      for(let x=0;x<=w;x+=4*DPR){
-        const y=waveY + Math.sin(x*0.04 + t*2.2)*2*DPR + Math.sin(x*0.025 + t*1.7)*1.2*DPR;
-        ctx.lineTo(x,y);
-      }
-      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
-      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
-      // bubbles rising
-      drawBubbles(areaY, compH, 28, 2);
-    }
-
-    // ----- WATER (overtime) upper half -----
-    if (overH>0){
-      const areaY = half - overH;
-      const waveY = areaY + 6*DPR + Math.sin(t*2.0)*2*DPR;
-      const grdW2=ctx.createLinearGradient(0,areaY,0,areaY+overH);
-      grdW2.addColorStop(0,'rgba(120,200,255,0.55)');
-      grdW2.addColorStop(1,'rgba(10,70,160,0.75)');
-      ctx.fillStyle=grdW2; ctx.fillRect(0,areaY,w,overH);
-      ctx.beginPath(); ctx.moveTo(0,waveY);
-      for(let x=0;x<=w;x+=4*DPR){
-        const y=waveY + Math.sin(x*0.05 + t*2.0)*2*DPR + Math.sin(x*0.03 + t*1.6)*1.2*DPR;
-        ctx.lineTo(x,y);
-      }
-      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
-      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
-      drawBubbles(areaY, overH, 18, 1);
-    }
-
-    // Midline (subtle)
-    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1*DPR;
-    ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke();
-
-    raf = requestAnimationFrame(draw);
-  }
-
-  function drawBubbles(areaY, height, maxCount, rate){
-    // lightweight bubbles; static arrays not needed—no need to store between frames
-    for(let i=0;i<maxCount;i++){
-      const x = Math.random()*w;
-      let y = areaY + height - Math.random()*height;
-      const r = 0.8*DPR + Math.random()*1.6*DPR;
-      // rising path
-      y -= (Math.sin((t+i)*0.8)+1)*2*DPR;
-      ctx.beginPath();
-      ctx.arc(x,y,r,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,0.35)';
-      ctx.fill();
-    }
-  }
-
-  function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
-
-  function start(){ cancel(); size(); raf = requestAnimationFrame(draw); }
-  function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
-  const ro = new ResizeObserver(()=>start()); ro.observe(canvas);
-  requestAnimationFrame(start);
-  return { cancel, start };
-}
+      function spawn(arr, area, count){ for(let i=0;i<count;i++){ arr.push({ x: area.x + Math.random()*area.w, y: area.y + area.h + Math.random()*10, r: 1 + Math.random()*2, vy: -(0.15+Math.random()*0.35)*DPR, drift:(Math.random()*0.4-0.2)*DPR }); } }
+      function noise(y){ return (Math.sin(y*0.07 + t*0.8) + Math.sin(y*0.03 + t*0.6 + 2))/2; }
 
       function draw(){
         t += 0.016;
@@ -544,7 +366,9 @@ function SandWater(canvas, worked, compUsed, overtime){
       }
       function start(){ cancel(); size(); raf = requestAnimationFrame(draw); }
       function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
-      const ro = new ResizeObserver(()=>start()); ro.observe(canvas);
+      /* v41 guard for ResizeObserver */
+      if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(()=>start()); ro.observe(canvas); }
+      else { window.addEventListener('resize', start); }
       requestAnimationFrame(start);
       return { cancel, start };
     }
@@ -552,8 +376,8 @@ function SandWater(canvas, worked, compUsed, overtime){
     // Views
     const views={menu:document.getElementById('view-menu'),calendar:document.getElementById('view-calendar'),logger:document.getElementById('view-logger')};
     function show(n){for(const v in views) views[v].classList.remove('active'); views[n].classList.add('active'); backBtn.style.visibility = (n==='menu') ? 'hidden' : 'visible'; if(n==='menu') renderMenu(); if(n==='calendar') renderWeek(); if(n==='logger') renderLogger();}
-    document.getElementById('goCalendar').addEventListener('click',()=>show('calendar'));
-    document.getElementById('goLogger').addEventListener('click',()=>show('logger'));
+    (function(){var __el=document.getElementById('goCalendar'); if(__el)__el.addEventListener('click',()=>show('calendar'));
+    (function(){var __el=document.getElementById('goLogger'); if(__el)__el.addEventListener('click',()=>show('logger'));
     backBtn.addEventListener('click', ()=> show('menu'));
 
     function renderMenu(){ const ws=startOfWeekMon(new Date()); let sum=0; for(let i=0;i<7;i++){ sum+=workMins(toDateStr(addDays(ws,i))); } document.getElementById('pillWeek').textContent='Weekly hours: '+fmtHM(sum); document.getElementById('pillBank').textContent='Overtime bank: '+fmtSignedHM(overtimeBank()); }
@@ -586,7 +410,7 @@ function SandWater(canvas, worked, compUsed, overtime){
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
           dayControllers.set(el, ctrl);
-        });
+        });})();
         el.addEventListener('click', ()=> openBubbleCentered(ds, worked, compUsed, overtime));
 
         const fb = document.createElement('button'); fb.className='fill-btn'; fb.textContent = 'Fill missing time';
@@ -598,7 +422,7 @@ function SandWater(canvas, worked, compUsed, overtime){
           const next = (current === need) ? 0 : need;
           if(next>0){ state.comp[ds] = { mins: next, note: 'auto-fill' }; } else { delete state.comp[ds]; }
           save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
-        });
+        });})();
 
         wrap.appendChild(el); wrap.appendChild(fb);
         weekStrip.appendChild(wrap);
@@ -613,36 +437,26 @@ function SandWater(canvas, worked, compUsed, overtime){
     function validTime(t){ return /^\\d{2}:\\d{2}$/.test(t); }
     const breaksPane=document.getElementById('breaksPane');
     function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
-      let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
+      let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});})();
       const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){
-      const row=document.createElement('div'); row.className='break-item';
-      row.innerHTML = `
-        <div class="bi-name-block">
-          <label>Name</label>
-          <input type="text" class="bi-name" value="${i.name||''}" placeholder="Name">
-        </div>
-        <div class="bi-times">
-          <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-          <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
-        </div>
-        <div><button class="btn small bi-remove">Remove break</button></div>`;
-      breaksPane.appendChild(row);
-      const onChange=()=>computeTotal();
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onChange));
-      row.querySelector('.bi-remove').addEventListener('click',()=>{ row.remove(); computeTotal(); }); computeTotal(); }
+    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
+      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
+      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
-    document.getElementById('logDate').addEventListener('change',e=>clearLoggerFor(e.target.value));
-    document.getElementById('btnStartNow').addEventListener('click',()=>{document.getElementById('startTime').value=nowHHMM(); computeTotal();});
-    document.getElementById('btnStopNow').addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});
-    document.getElementById('btnAddBreak').addEventListener('click',()=>addBreakRow());
-    document.getElementById('startTime').addEventListener('input',computeTotal); document.getElementById('stopTime').addEventListener('input',computeTotal);
-    document.getElementById('btnSave').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
+    (function(){var __el=document.getElementById('logDate'); if(__el)__el.addEventListener('change',e=>clearLoggerFor(e.target.value));
+    (function(){var __el=document.getElementById('btnStartNow'); if(__el)__el.addEventListener('click',()=>{document.getElementById('startTime').value=nowHHMM(); computeTotal();});})();
+    (function(){var __el=document.getElementById('btnStopNow'); if(__el)__el.addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});})();
+    (function(){var __el=document.getElementById('btnAddBreak'); if(__el)__el.addEventListener('click',()=>addBreakRow());
+    (function(){var __el=document.getElementById('startTime'); if(__el)__el.addEventListener('input',computeTotal); (function(){var __el=document.getElementById('stopTime'); if(__el)__el.addEventListener('input',computeTotal);
+    (function(){var __el=document.getElementById('btnSave'); if(__el)__el.addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
       const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
-      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast('Day saved'); show('calendar'); });
-    document.getElementById('btnResetWork').addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });
+      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast('Day saved'); show('calendar'); });})();
+    (function(){var __el=document.getElementById('btnResetWork'); if(__el)__el.addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });})();
 
     // Bubble
     const focusLayer=document.getElementById('focusLayer'), bubble=document.getElementById('bubble'), bubbleCanvas=document.getElementById('bubbleCanvas'), bubbleOptions=document.getElementById('bubbleOptions'), bubbleDateLbl=document.getElementById('bubbleDate'), bubbleDetails=document.getElementById('bubbleDetails');
@@ -665,7 +479,7 @@ function positionBubbleLayout(){
 positionBubbleLayout();
 requestAnimationFrame(positionBubbleLayout);
 setTimeout(positionBubbleLayout, 100);
-window.addEventListener('resize', positionBubbleLayout, { once: true });
+window.addEventListener('resize', positionBubbleLayout, { once: true });})();
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
@@ -680,11 +494,11 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
       if(bubbleCtrl) bubbleCtrl.cancel();
       requestAnimationFrame(()=>{
         bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
-      });
+      });})();
     }
-    document.getElementById('focusBackdrop').addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });
-    document.getElementById('optEditLog').addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });
-    document.getElementById('optFillMissing').addEventListener('click',()=>{
+    (function(){var __el=document.getElementById('focusBackdrop'); if(__el)__el.addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });})();
+    (function(){var __el=document.getElementById('optEditLog'); if(__el)__el.addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });})();
+    (function(){var __el=document.getElementById('optFillMissing'); if(__el)__el.addEventListener('click',()=>{
       if(!bubbleDate) return;
       const ds=bubbleDate;
       const need = Math.max(0, 504 - workMins(ds));
@@ -696,13 +510,13 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
       if(bubbleCtrl) bubbleCtrl.cancel();
       requestAnimationFrame(()=>{
         bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
-      });
+      });})();
       document.getElementById('dCompUsed').textContent=fmtHM(compUsed); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
-    });
-    document.getElementById('optResetDay').addEventListener('click',()=>{
+    });})();
+    (function(){var __el=document.getElementById('optResetDay'); if(__el)__el.addEventListener('click',()=>{
       if(!bubbleDate) return;
       const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
-    });
+    });})();
 
     // Service worker with "New version available — Refresh"
     const updateBanner = document.getElementById('updateBanner');
@@ -715,17 +529,17 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
             const newWorker = swReg.installing;
             if(newWorker) newWorker.addEventListener('statechange',()=>{
               if(newWorker.state==='installed' && navigator.serviceWorker.controller){ updateBanner.classList.add('show'); }
-            });
-          });
+            });})();
+          });})();
         }
         listenForWaiting(reg);
         btnRefresh.addEventListener('click',()=>{
           if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); }
           updateBanner.classList.remove('show');
           setTimeout(()=>location.reload(), 150);
-        });
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* page will reload */ });
+        });})();
+      });})();
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* page will reload */ });})();
     }
   
     // ---- SAFE REBIND ----
@@ -742,7 +556,7 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
         let bt=0; document.querySelectorAll('#breaksPane .break-item').forEach(it=>{
           const s=it.querySelector('.bi-start')?.value.trim()||'', e=it.querySelector('.bi-stop')?.value.trim()||'';
           if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }
-        });
+        });})();
         return Math.max(0,w-bt);
       }
       function saveDay(){
@@ -772,6 +586,8 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });
       if(btn){ btn.addEventListener('click', saveDay); }
     })();
     
-  </script>
+  
+window.addEventListener('error',e=>{ try{ console.log('App error:', e.message); }catch(_){} });
+</script>
 </body>
 </html>
