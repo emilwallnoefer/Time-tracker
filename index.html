@@ -184,7 +184,7 @@ html, body { overflow-x: hidden; }
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 35</div>
+    <div class="version version-menu">Hour Logger 42</div>
   </section>
 
   <!-- CALENDAR -->
@@ -201,7 +201,7 @@ html, body { overflow-x: hidden; }
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 35</div>
+    <div class="version">Hour Logger 42</div>
   </section>
 
   <!-- LOGGER -->
@@ -231,7 +231,7 @@ html, body { overflow-x: hidden; }
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 35</div>
+    <div class="version">Hour Logger 42</div>
   </section>
 
   <!-- Focus bubble -->
@@ -260,7 +260,7 @@ html, body { overflow-x: hidden; }
   </div>
 
   <script>
-    const APP_VERSION = "35";
+    const APP_VERSION = "42";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -277,12 +277,14 @@ html, body { overflow-x: hidden; }
     const setTheme = t => { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('hourlogger.theme', t); };
     setTheme(localStorage.getItem('hourlogger.theme') || 'dark');
     menuBtn.addEventListener('click', ()=> menuDD.classList.toggle('show'));
-    mLight.addEventListener('click', ()=>{ setTheme('light'); menuDD.classList.remove('show'); });})();
-    mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });})();
+    mLight.addEventListener('click', ()=>{ setTheme('light'); menuDD.classList.remove('show'); });
+    mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.35';
-    const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
+    const TARGET=504, KEY='hourlogger.42';
+    const state=JSON.parse(localStorage.getItem(KEY)||'{}');
+if(!state.work) state.work = {};
+if(!state.comp) state.comp = {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
     const toDateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -307,179 +309,150 @@ html, body { overflow-x: hidden; }
     addEventListener('resize',()=>{resizeFX();initParticles();}); resizeFX(); initParticles(); drawFX();
 
     // Sand + water renderer (cracks removed)
-    function SandWater(canvas, worked, compUsed, overtime){
-      const ctx = canvas.getContext('2d');
-      let raf=0, t=0, DPR=1, w=0, h=0;
-      const bubblesBottom=[], bubblesTop=[];
+    
+function SandWater(canvas, worked, compUsed, overtime){
+  const ctx = canvas.getContext('2d');
+  let raf=0, t=0, DPR=1, w=0, h=0;
+  // targets in px for lower/upper halves
+  let targetSand=0, targetComp=0, targetOver=0;
+  // progress (0..1) for sequential rise
+  let pSand=0, pComp=0, pOver=0;
+  const speed = 1.35; // animation speed
+  // static sand texture
+  let sandPattern=null, seed = Math.random()*1000;
 
-      function size(){
-        DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-        const cw = Math.max(1, canvas.clientWidth|0);
-        const ch = Math.max(1, canvas.clientHeight|0);
-        w = canvas.width  = Math.floor(cw * DPR);
-        h = canvas.height = Math.floor(ch * DPR);
-      }
-      function spawn(arr, area, count){ for(let i=0;i<count;i++){ arr.push({ x: area.x + Math.random()*area.w, y: area.y + area.h + Math.random()*10, r: 1 + Math.random()*2, vy: -(0.15+Math.random()*0.35)*DPR, drift:(Math.random()*0.4-0.2)*DPR }); } }
-      function noise(y){ return (Math.sin(y*0.07 + t*0.8) + Math.sin(y*0.03 + t*0.6 + 2))/2; }
+  function size(){
+    DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    const cw = Math.max(1, canvas.clientWidth|0);
+    const ch = Math.max(1, canvas.clientHeight|0);
+    w = canvas.width  = Math.floor(cw * DPR);
+    h = canvas.height = Math.floor(ch * DPR);
+    buildTargets();
+    buildSandPattern();
+  }
+  function buildTargets(){
+    const half = h*0.5;
+    targetSand = Math.min(half, half * (worked / 504));
+    // comp water fills any remaining lower space but capped by compUsed
+    targetComp = Math.min(Math.max(0, half - targetSand), half * (compUsed / 504));
+    // overtime water fills upper half proportionally
+    targetOver = Math.min(half, half * (Math.max(0, overtime) / 504));
+    pSand = 0; pComp = 0; pOver = 0; t = 0;
+  }
+  function buildSandPattern(){
+    const tex = document.createElement('canvas');
+    tex.width = 96; tex.height = 96;
+    const c = tex.getContext('2d');
+    // base
+    c.fillStyle = '#cdb886'; c.fillRect(0,0,tex.width,tex.height);
+    // speckle noise
+    for(let i=0;i<1200;i++){
+      const x = (Math.sin(i*12.9898+seed)*43758.5453)%1 * tex.width;
+      const y = (Math.sin(i*78.233 + seed*1.3)*43758.5453)%1 * tex.height;
+      c.fillStyle = `rgba(120,100,60,${0.15 + ((i%7)/50)})`;
+      c.fillRect(x|0,y|0,1,1);
+    }
+    // round grains
+    c.fillStyle = 'rgba(90,70,30,0.18)';
+    for(let j=0;j<260;j++){
+      const x = Math.random()*tex.width, y = Math.random()*tex.height, r = Math.random()*1.2+0.3;
+      c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    }
+    sandPattern = ctx.createPattern(tex,'repeat');
+  }
+  // crest function: static, depends only on x so uneven even at 100%
+  function crestY(baseY, x){
+    const nx = x / (w||1);
+    const a = Math.sin((nx*8.0 + seed)*Math.PI*2)*0.6;
+    const b = Math.sin((nx*15.0 + seed*0.7)*Math.PI*2)*0.4;
+    const c = Math.sin((nx*28.0 + seed*1.3)*Math.PI*2)*0.25;
+    return baseY - (a + b + c) * 3 * DPR; // ~3px variation
+  }
+  function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
 
-      function draw(){
-        t += 0.016;
-        ctx.clearRect(0,0,w,h);
-        const half = h*0.5;
+  function draw(){
+    t += 0.016;
+    ctx.clearRect(0,0,w,h);
+    const half = h*0.5;
 
-        const sandH = Math.min(half, half * (worked / 504));
-        const compH = Math.min(Math.max(0, half - sandH), half * (compUsed / 504));
-        const overH = Math.min(half, half * (Math.max(0,overtime) / 504));
+    // animate sequentially
+    if (pSand < 1) { pSand = Math.min(1, pSand + 0.016*speed); }
+    else if (pComp < 1 && targetComp>0) { pComp = Math.min(1, pComp + 0.016*speed); }
+    else if (pOver < 1 && targetOver>0) { pOver = Math.min(1, pOver + 0.016*speed); }
 
-        if (sandH>0){
-          const topY = h - sandH;
-          const grd = ctx.createLinearGradient(0, topY, 0, h); grd.addColorStop(0,'#daca9b'); grd.addColorStop(1,'#b8965b');
-          ctx.fillStyle = grd; ctx.fillRect(0, topY, w, h-topY);
-          for(let i=0;i<Math.floor(w*h*0.00035);i++){ const nx=Math.random()*w, ny=topY+Math.random()*(h-topY); ctx.fillStyle=`rgba(120,100,60,${Math.random()*0.35})`; ctx.fillRect(nx,ny,1,1);}
-          for(let i=0;i<Math.floor(w*h*0.00005);i++){ const nx=Math.random()*w, ny=topY+Math.random()*(h-topY); ctx.fillStyle='rgba(90,70,30,0.25)'; ctx.beginPath(); ctx.arc(nx,ny,Math.random()*1.6+0.4,0,Math.PI*2); ctx.fill(); }
-          ctx.beginPath(); ctx.moveTo(0, topY);
-          for(let x=0;x<=w;x+=3){ const y=topY - 3*DPR + noise(x)*3*DPR; ctx.lineTo(x,y); } ctx.lineTo(w, topY); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fill();
-        }
+    const sandH = targetSand * easeOutCubic(pSand);
+    const compH = targetComp * easeOutCubic(pComp);
+    const overH = targetOver * easeOutCubic(pOver);
 
-        if (compH>0){
-          const area={x:0,y:h - sandH - compH,w:w,h:compH}; const waveY=area.y + 6*DPR + Math.sin(t*1.8)*2*DPR;
-          const grdW=ctx.createLinearGradient(0,area.y,0,area.y+area.h); grdW.addColorStop(0,'rgba(100,180,255,0.55)'); grdW.addColorStop(1,'rgba(30,90,180,0.7)');
-          ctx.fillStyle=grdW; ctx.fillRect(area.x,area.y,area.w,area.h);
-          if(bubblesBottom.length<28) spawn(bubblesBottom, area, 2);
-          for(let i=bubblesBottom.length-1;i>=0;i--){ const b=bubblesBottom[i]; b.y+=b.vy; b.x+=Math.sin((t+i)*0.8)*0.2*DPR+b.drift; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill(); if(b.y<area.y+4*DPR) bubblesBottom.splice(i,1); }
-          ctx.beginPath(); ctx.moveTo(0,waveY); for(let x=0;x<=w;x+=4){ const y=waveY + Math.sin(x*0.04 + t*2.2)*2*DPR + Math.sin(x*0.025 + t*1.7)*1.2*DPR; ctx.lineTo(x,y);} ctx.lineTo(w,area.y); ctx.lineTo(0,area.y); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
-        }
-
-        if (overH>0){
-          const area={x:0,y:half - overH,w:w,h:overH}; const waveY=area.y + 6*DPR + Math.sin(t*2.0)*2*DPR;
-          const grdW2=ctx.createLinearGradient(0,area.y,0,area.y+area.h); grdW2.addColorStop(0,'rgba(120,200,255,0.55)'); grdW2.addColorStop(1,'rgba(10,70,160,0.75)');
-          ctx.fillStyle=grdW2; ctx.fillRect(area.x,area.y,area.w,area.h);
-          if(bubblesTop.length<20) spawn(bubblesTop, area, 1);
-          for(let i=bubblesTop.length-1;i>=0;i--){ const b=bubblesTop[i]; b.y+=b.vy; b.x+=Math.sin((t+i)*1.1)*0.25*DPR+b.drift; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill(); if(b.y<area.y+2*DPR) bubblesTop.splice(i,1); }
-          ctx.beginPath(); ctx.moveTo(0,waveY); for(let x=0;x<=w;x+=4){ const y=waveY + Math.sin(x*0.05 + t*2.0)*2*DPR + Math.sin(x*0.03 + t*1.6)*1.2*DPR; ctx.lineTo(x,y);} ctx.lineTo(w,area.y); ctx.lineTo(0,area.y); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
-        }
-
-        // midline
-        const ctxLine = ctx; ctxLine.strokeStyle='rgba(255,255,255,0.06)'; ctxLine.lineWidth=1*DPR; ctxLine.beginPath(); ctxLine.moveTo(0,h*0.5); ctxLine.lineTo(w,h*0.5); ctxLine.stroke();
-
-        raf = requestAnimationFrame(draw);
-      }
-      function start(){ cancel(); size(); raf = requestAnimationFrame(draw); }
-      function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
-      /* v41 guard for ResizeObserver */
-      if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(()=>start()); ro.observe(canvas); }
-      else { window.addEventListener('resize', start); }
-      requestAnimationFrame(start);
-      return { cancel, start };
+    // --- SAND --- (lower half)
+    if (sandH>0){
+      const baseTop = h - sandH;
+      ctx.save();
+      // sand body fill
+      const grd = ctx.createLinearGradient(0, baseTop, 0, h);
+      grd.addColorStop(0,'#daca9b'); grd.addColorStop(1,'#b8965b');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, baseTop, w, h-baseTop);
+      // pattern overlay
+      if (sandPattern){ ctx.globalAlpha = 0.5; ctx.fillStyle = sandPattern; ctx.fillRect(0, baseTop, w, h-baseTop); ctx.globalAlpha = 1; }
+      // uneven crest highlight
+      ctx.beginPath();
+      ctx.moveTo(0, crestY(baseTop, 0));
+      for(let x=0; x<=w; x+=3*DPR){ ctx.lineTo(x, crestY(baseTop, x)); }
+      ctx.lineTo(w, baseTop); ctx.lineTo(0, baseTop); ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+      ctx.restore();
     }
 
-    // Views
-    const views={menu:document.getElementById('view-menu'),calendar:document.getElementById('view-calendar'),logger:document.getElementById('view-logger')};
-    function show(n){for(const v in views) views[v].classList.remove('active'); views[n].classList.add('active'); backBtn.style.visibility = (n==='menu') ? 'hidden' : 'visible'; if(n==='menu') renderMenu(); if(n==='calendar') renderWeek(); if(n==='logger') renderLogger();}
-    (function(){var __el=document.getElementById('goCalendar'); if(__el)__el.addEventListener('click',()=>show('calendar'));
-    (function(){var __el=document.getElementById('goLogger'); if(__el)__el.addEventListener('click',()=>show('logger'));
-    backBtn.addEventListener('click', ()=> show('menu'));
-
-    function renderMenu(){ const ws=startOfWeekMon(new Date()); let sum=0; for(let i=0;i<7;i++){ sum+=workMins(toDateStr(addDays(ws,i))); } document.getElementById('pillWeek').textContent='Weekly hours: '+fmtHM(sum); document.getElementById('pillBank').textContent='Overtime bank: '+fmtSignedHM(overtimeBank()); }
-
-    // Calendar
-    const weekTitle=document.getElementById('wTitle'), weekStrip=document.getElementById('weekStrip'), calFooter=document.getElementById('calFooter'); let weekStart=startOfWeekMon(new Date());
-    const dayControllers = new Map();
-
-    function renderWeek(){
-      const ws=new Date(weekStart), we=addDays(ws,6);
-      weekTitle.textContent = `${ws.getDate()} ${monthNames[ws.getMonth()]} – ${we.getDate()} ${monthNames[we.getMonth()]} ${we.getFullYear()}`;
-      for (const ctrl of dayControllers.values()) ctrl.cancel?.();
-      dayControllers.clear();
-      weekStrip.innerHTML = '';
-      let weekSum = 0;
-
-      for (let i=0;i<7;i++){
-        const d = addDays(ws,i);
-        const ds = toDateStr(d);
-        const worked = workMins(ds);
-        const compUsed = compMins(ds);
-        const overtime = Math.max(0, worked - TARGET);
-        weekSum += worked;
-
-        const wrap = document.createElement('div'); wrap.className='day-wrap';
-        const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
-        el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
-        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
-        const canvas = document.createElement('canvas'); el.appendChild(canvas);
-        requestAnimationFrame(()=>{
-          const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
-          dayControllers.set(el, ctrl);
-        });})();
-        el.addEventListener('click', ()=> openBubbleCentered(ds, worked, compUsed, overtime));
-
-        const fb = document.createElement('button'); fb.className='fill-btn'; fb.textContent = 'Fill missing time';
-        if (compUsed>0 && (worked+compUsed)>=TARGET) fb.classList.add('active');
-        fb.addEventListener('click', (ev)=>{
-          ev.stopPropagation();
-          const need = Math.max(0, TARGET - workMins(ds));
-          const current = compMins(ds);
-          const next = (current === need) ? 0 : need;
-          if(next>0){ state.comp[ds] = { mins: next, note: 'auto-fill' }; } else { delete state.comp[ds]; }
-          save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
-        });})();
-
-        wrap.appendChild(el); wrap.appendChild(fb);
-        weekStrip.appendChild(wrap);
-      }
-
-      calFooter.innerHTML = `<strong>Weekly hours:</strong> ${fmtHM(weekSum)} · <strong>Overtime bank:</strong> ${fmtSignedHM(overtimeBank())}`;
+    // --- WATER (comp, lower half) ---
+    if (compH>0){
+      const areaY = h - sandH - compH;
+      const grdW = ctx.createLinearGradient(0,areaY,0,areaY+compH);
+      grdW.addColorStop(0,'rgba(100,180,255,0.55)'); grdW.addColorStop(1,'rgba(30,90,180,0.7)');
+      ctx.fillStyle = grdW; ctx.fillRect(0,areaY,w,compH);
+      // waves
+      const waveY = areaY + 6*DPR + Math.sin(t*1.8)*2*DPR;
+      ctx.beginPath(); ctx.moveTo(0,waveY);
+      for(let x=0;x<=w;x+=4*DPR){ const y=waveY + Math.sin(x*0.04 + t*2.2)*2*DPR + Math.sin(x*0.025 + t*1.7)*1.2*DPR; ctx.lineTo(x,y); }
+      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
+      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+      // bubbles
+      for(let i=0;i<24;i++){ const bx=Math.random()*w; let by=areaY+compH - Math.random()*compH; const r=0.8*DPR + Math.random()*1.6*DPR; by -= (Math.sin((t+i)*0.8)+1)*2*DPR; ctx.beginPath(); ctx.arc(bx,by,r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fill(); }
     }
 
-    // Logger
-    function nowHHMM(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; }
-    function parseHHMM(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
-    function validTime(t){ return /^\\d{2}:\\d{2}$/.test(t); }
-    const breaksPane=document.getElementById('breaksPane');
-    function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
-      let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});})();
-      const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
-      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
-      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
-      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
-    function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
-      if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
-    function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
-    (function(){var __el=document.getElementById('logDate'); if(__el)__el.addEventListener('change',e=>clearLoggerFor(e.target.value));
-    (function(){var __el=document.getElementById('btnStartNow'); if(__el)__el.addEventListener('click',()=>{document.getElementById('startTime').value=nowHHMM(); computeTotal();});})();
-    (function(){var __el=document.getElementById('btnStopNow'); if(__el)__el.addEventListener('click',()=>{document.getElementById('stopTime').value=nowHHMM(); computeTotal();});})();
-    (function(){var __el=document.getElementById('btnAddBreak'); if(__el)__el.addEventListener('click',()=>addBreakRow());
-    (function(){var __el=document.getElementById('startTime'); if(__el)__el.addEventListener('input',computeTotal); (function(){var __el=document.getElementById('stopTime'); if(__el)__el.addEventListener('input',computeTotal);
-    (function(){var __el=document.getElementById('btnSave'); if(__el)__el.addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!/^\d{2}:\d{2}$/.test(a)||!/^\d{2}:\d{2}$/.test(b)){ /* allow empty save */ }
-      const net=computeTotal(); const breaks=[]; document.querySelectorAll('#breaksPane .break-item').forEach(it=>breaks.push({name:it.querySelector('.bi-name').value.trim(),start:it.querySelector('.bi-start').value.trim(),stop:it.querySelector('.bi-stop').value.trim()}));
-      const holiday=document.getElementById('holidayFlag').checked; state.work[ds]={start:a,stop:b,breaks,netMins:net,holiday}; save(); renderMenu(); renderWeek(); toast('Day saved'); show('calendar'); });})();
-    (function(){var __el=document.getElementById('btnResetWork'); if(__el)__el.addEventListener('click',()=>{ const ds=document.getElementById('logDate').value||toDateStr(new Date()); if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); clearLoggerFor(ds); renderMenu(); renderWeek(); toast('Day reset'); });})();
+    // --- WATER (overtime, upper half) ---
+    if (overH>0){
+      const areaY = half - overH;
+      const grdW2 = ctx.createLinearGradient(0,areaY,0,areaY+overH);
+      grdW2.addColorStop(0,'rgba(120,200,255,0.55)'); grdW2.addColorStop(1,'rgba(10,70,160,0.75)');
+      ctx.fillStyle = grdW2; ctx.fillRect(0,areaY,w,overH);
+      const waveY = areaY + 6*DPR + Math.sin(t*2.0)*2*DPR;
+      ctx.beginPath(); ctx.moveTo(0,waveY);
+      for(let x=0;x<=w;x+=4*DPR){ const y=waveY + Math.sin(x*0.05 + t*2.0)*2*DPR + Math.sin(x*0.03 + t*1.6)*1.2*DPR; ctx.lineTo(x,y); }
+      ctx.lineTo(w,areaY); ctx.lineTo(0,areaY); ctx.closePath();
+      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
+      for(let i=0;i<16;i++){ const bx=Math.random()*w; let by=areaY+overH - Math.random()*overH; const r=0.7*DPR + Math.random()*1.4*DPR; by -= (Math.sin((t+i)*1.0)+1)*2*DPR; ctx.beginPath(); ctx.arc(bx,by,r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fill(); }
+    }
 
-    // Bubble
-    const focusLayer=document.getElementById('focusLayer'), bubble=document.getElementById('bubble'), bubbleCanvas=document.getElementById('bubbleCanvas'), bubbleOptions=document.getElementById('bubbleOptions'), bubbleDateLbl=document.getElementById('bubbleDate'), bubbleDetails=document.getElementById('bubbleDetails');
-    let bubbleCtrl=null, bubbleDate=null;
-    function openBubbleCentered(ds, worked, compUsed, overtime){
-      bubbleDate = ds;
-      bubbleDateLbl.textContent = ds;
-      const vw = window.innerWidth, vh = window.innerHeight;
-const bw = Math.min(360, vw - 32), bh = 200;
-bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-function positionBubbleLayout(){
-  const topSafe = Math.max(70, (innerWidth<420?60:80));
-  bubble.style.left = (vw/2 - bw/2) + 'px';
-  bubble.style.top  = topSafe + 'px';
-  bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-  bubbleOptions.style.top = (topSafe + bh + 12) + 'px';
-  const optRect = bubbleOptions.getBoundingClientRect();
-  bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 24) + 'px';
+    // subtle midline
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1*DPR;
+    ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke();
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  function start(){ cancel(); size(); raf=requestAnimationFrame(draw); }
+  function cancel(){ if(raf) cancelAnimationFrame(raf); raf=0; }
+  if (typeof ResizeObserver !== 'undefined') { const ro=new ResizeObserver(()=>start()); ro.observe(canvas); }
+  else { window.addEventListener('resize', start); }
+  requestAnimationFrame(start);
+  return { cancel, start };
 }
+
 positionBubbleLayout();
 requestAnimationFrame(positionBubbleLayout);
 setTimeout(positionBubbleLayout, 100);
-window.addEventListener('resize', positionBubbleLayout, { once: true });})();
+window.addEventListener('resize', positionBubbleLayout, { once: true });
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
@@ -494,11 +467,11 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });})();
       if(bubbleCtrl) bubbleCtrl.cancel();
       requestAnimationFrame(()=>{
         bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
-      });})();
+      });
     }
-    (function(){var __el=document.getElementById('focusBackdrop'); if(__el)__el.addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });})();
-    (function(){var __el=document.getElementById('optEditLog'); if(__el)__el.addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });})();
-    (function(){var __el=document.getElementById('optFillMissing'); if(__el)__el.addEventListener('click',()=>{
+    document.getElementById('focusBackdrop').addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });
+    document.getElementById('optEditLog').addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });
+    document.getElementById('optFillMissing').addEventListener('click',()=>{
       if(!bubbleDate) return;
       const ds=bubbleDate;
       const need = Math.max(0, 504 - workMins(ds));
@@ -510,13 +483,13 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });})();
       if(bubbleCtrl) bubbleCtrl.cancel();
       requestAnimationFrame(()=>{
         bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
-      });})();
+      });
       document.getElementById('dCompUsed').textContent=fmtHM(compUsed); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
-    });})();
-    (function(){var __el=document.getElementById('optResetDay'); if(__el)__el.addEventListener('click',()=>{
+    });
+    document.getElementById('optResetDay').addEventListener('click',()=>{
       if(!bubbleDate) return;
       const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
-    });})();
+    });
 
     // Service worker with "New version available — Refresh"
     const updateBanner = document.getElementById('updateBanner');
@@ -529,17 +502,17 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });})();
             const newWorker = swReg.installing;
             if(newWorker) newWorker.addEventListener('statechange',()=>{
               if(newWorker.state==='installed' && navigator.serviceWorker.controller){ updateBanner.classList.add('show'); }
-            });})();
-          });})();
+            });
+          });
         }
         listenForWaiting(reg);
         btnRefresh.addEventListener('click',()=>{
           if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); }
           updateBanner.classList.remove('show');
           setTimeout(()=>location.reload(), 150);
-        });})();
-      });})();
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* page will reload */ });})();
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* page will reload */ });
     }
   
     // ---- SAFE REBIND ----
@@ -556,7 +529,7 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });})();
         let bt=0; document.querySelectorAll('#breaksPane .break-item').forEach(it=>{
           const s=it.querySelector('.bi-start')?.value.trim()||'', e=it.querySelector('.bi-stop')?.value.trim()||'';
           if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }
-        });})();
+        });
         return Math.max(0,w-bt);
       }
       function saveDay(){
@@ -586,8 +559,6 @@ window.addEventListener('resize', positionBubbleLayout, { once: true });})();
       if(btn){ btn.addEventListener('click', saveDay); }
     })();
     
-  
-window.addEventListener('error',e=>{ try{ console.log('App error:', e.message); }catch(_){} });
-</script>
+  </script>
 </body>
 </html>
