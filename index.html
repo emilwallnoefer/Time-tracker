@@ -18,7 +18,7 @@
     html,body{height:100%}
     body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);position:relative;overflow-x:hidden}
     #fxCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(10px)}
-    .fx-top{position:relative;z-index:1;max-width:860px;margin:0 auto}
+    .fx-top{position:relative;z-index:1;width:100%;margin:0 auto}
 
     .topbar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px var(--pad);background:#0f1118aa;border-bottom:1px solid var(--stroke);backdrop-filter:saturate(180%) blur(8px);z-index:10}
     .title{font-weight:800; font-size:18px; text-align:center; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -55,7 +55,7 @@
     .day .n{position:absolute;top:8px;left:10px;font-size:11px;font-weight:700;z-index:2;text-shadow:0 2px 6px #0008}
     .day .h{position:absolute;bottom:8px;right:10px;font-weight:700;font-size:11px;z-index:2;text-shadow:0 2px 6px #0008}
     .day .pct{position:absolute;bottom:8px;left:10px;font-weight:700;font-size:11px;z-index:2;opacity:.9;text-shadow:0 2px 6px #0008}
-    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none }
+    .day canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none }
 
     .cal-footer{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--stroke);margin-top:6px;font-size:12px}
 
@@ -84,14 +84,14 @@
     .update-banner.show{ display:flex }
     .version{ text-align:center; color:var(--muted); font-size:11px; margin:12px 0 6px }
     /* Page centering + safe bottom space */
-    .page-wrap{ max-width: 560px; margin: 0 auto; display: grid; gap: 12px; }
+    .page-wrap{ width:100%; margin: 0 auto; display: grid; gap: 12px; }
     .view{ padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); }
     .card.actions{ position: relative; }
     .card.actions .btn{ min-width: 44%; }
     .card.actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
     /* Logger full centering */
     #view-logger .card{ display:grid; justify-items:center; text-align:center }
-    #view-logger .card > *{ max-width:520px; width:100% }
+    #view-logger .card > *{ width:100%; width:100% }
     #view-logger .row{ justify-content:center }
     #view-logger .actions{ justify-content:center }
 
@@ -111,7 +111,68 @@
     .toast-wrap{ position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 18px); display:grid; place-items:center; z-index:80; pointer-events:none }
     .toast{ background:#101826; color:#e8f0ff; border:1px solid #1d2a45; padding:10px 14px; border-radius:12px; box-shadow:0 10px 40px #0008; opacity:0; transform:translateY(10px); transition:.22s ease; font-size:13px; pointer-events:auto }
     .toast.show{ opacity:1; transform:none }
-  </style>
+  
+/* Limit horizontal scroll to the days strip only */
+html, body { overflow-x: hidden; }
+.view, .page-wrap { overflow-x: hidden; }
+.week-card { overflow: hidden; } /* keep shadows/content inside */
+.week-strip{ overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+
+
+    /* Holiday overlays */
+    .day .holiday{
+      position:absolute; inset:0; display:grid; place-items:center;
+      font-size:48px; opacity:.98; z-index:1; pointer-events:none;
+      text-shadow: 0 2px 8px rgba(0,0,0,.45);
+    }
+    .holiday-bubble{
+      position:absolute; inset:0; display:none; place-items:center;
+      font-size:110px; opacity:.98; z-index:2; pointer-events:none;
+      text-shadow: 0 8px 24px rgba(0,0,0,.5);
+    }
+    .holiday-bubble.show{ display:grid; }
+    
+
+/* v35 size-only tweaks for logger to prevent overlap */
+@media (max-width: 420px){
+  .title{ font-size:16px }
+  .icon-btn{ width:36px; height:36px; padding:8px }
+  .btn{ padding:8px 10px; font-size:13px }
+  .btn.small{ padding:7px 9px; font-size:12px }
+  #view-logger input[type="time"],
+  #view-logger input[type="date"],
+  #view-logger input[type="text"],
+  #view-logger input[type="number"]{ font-size:14px; padding:9px }
+  /* target the inline grid (start/stop) without changing structure */
+  #view-logger .card > div[style*="grid-template-columns"]{ gap:8px }
+  #view-logger .card > div[style*="grid-template-columns"] > div{ width:100%; margin:0 auto }
+  /* action buttons wrap more gracefully */
+  .card.actions .btn{ min-width:48% }
+}
+@media (max-width: 360px){
+  #view-logger .card > div[style*="grid-template-columns"] > div{ max-width:150px }
+  .card.actions .btn{ min-width:100% }
+}
+
+
+/* v40 breaks full-width minimal layout */
+#breaksPane{ width:100%; max-height:300px; overflow:auto; }
+.break-item{ display:grid; gap:8px; width:100%; margin:10px 0; }
+.break-item .bi-name-block input{ font-size:14px; padding:10px }
+.break-item .bi-times{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.break-item .bi-times input{ width:100%; text-align:center; font-size:14px; padding:10px }
+.break-item .bi-remove{ width:100%; padding:10px 12px; }
+
+/* small phones */
+@media (max-width:420px){
+  .break-item .bi-times{ gap:6px }
+  .break-item .bi-name-block input, .break-item .bi-times input{ font-size:13px; padding:9px }
+}
+@media (max-width:360px){
+  .break-item .bi-times{ grid-template-columns:1fr; }
+}
+
+</style>
 </head>
 <body>
   <div class="toast-wrap"><div id="toast" class="toast">Saved</div></div>
@@ -141,7 +202,7 @@
       </div>
       <div class="line-stats"><span class="pill" id="pillWeek">Weekly hours: 0h 00m</span><span class="pill" id="pillBank">Overtime bank: 0h 00m</span></div>
     </div>
-    <div class="version version-menu">Hour Logger 23</div>
+    <div class="version version-menu">Hour Logger 40</div>
   </section>
 
   <!-- CALENDAR -->
@@ -158,7 +219,7 @@
       <div id="weekStrip" class="week-strip"></div>
       <div class="cal-footer" id="calFooter"></div>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger 40</div>
   </section>
 
   <!-- LOGGER -->
@@ -178,7 +239,7 @@
         <div><label><b>Start</b></label><input type="time" id="startTime"/><button class="btn small" id="btnStartNow" style="margin-top:8px;width:100%">Start now</button></div>
         <div><label><b>Stop</b></label><input type="time" id="stopTime"/><button class="btn small" id="btnStopNow" style="margin-top:8px;width:100%">Stop now</button></div>
         <div style="grid-column:1/-1;display:grid;gap:8px">
-          <button class="btn small" id="btnAddBreak">+ Add break</button>
+          <button class="btn small" id="btnAddBreak">Add break</button>
           <div id="breaksPane" style="width:100%;max-height:220px;overflow:auto"></div>
         </div>
       </div>
@@ -188,14 +249,14 @@
       <button class="btn primary" id="btnSave">Save day</button>
       <button class="btn" id="btnResetWork" style="white-space:nowrap">Reset this day</button>
     </div>
-    <div class="version">Hour Logger 23</div>
+    <div class="version">Hour Logger 40</div>
   </section>
 
   <!-- Focus bubble -->
   <div id="focusLayer" class="focus-layer">
     <div class="backdrop" id="focusBackdrop"></div>
     <div class="bubble-date" id="bubbleDate">—</div>
-    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas></div>
+    <div class="bubble" id="bubble"><canvas id="bubbleCanvas"></canvas><div id="bubbleHoliday" class="holiday-bubble">🏖️</div></div>
     <div class="options" id="bubbleOptions">
       <button class="opt-btn" id="optEditLog">Edit logging</button>
       <button class="opt-btn" id="optFillMissing">Fill missing time</button>
@@ -217,7 +278,7 @@
   </div>
 
   <script>
-    const APP_VERSION = "23";
+    const APP_VERSION = "40";
 
     // Toast
     const __toast = document.getElementById('toast');
@@ -238,7 +299,7 @@
     mDark .addEventListener('click', ()=>{ setTheme('dark');  menuDD.classList.remove('show'); });
 
     // Constants & state
-    const TARGET=504, KEY='hourlogger.23';
+    const TARGET=504, KEY='hourlogger.40';
     const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work ||= {}; state.comp ||= {};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
@@ -360,6 +421,7 @@
         const wrap = document.createElement('div'); wrap.className='day-wrap';
         const el = document.createElement('div'); el.className='day'; if (ds===toDateStr(new Date())) el.classList.add('today');
         el.innerHTML = `<span class="n">${dows[(d.getDay()+6)%7]} ${d.getDate()}</span><span class="pct">${Math.round(Math.min(1,(worked+compUsed)/TARGET)*100)}%</span><span class="h">${worked?fmtHM(worked):''}</span>`;
+        if(isHoliday(ds)){ const hv=document.createElement('div'); hv.className='holiday'; hv.textContent='🏖️'; el.appendChild(hv); }
         const canvas = document.createElement('canvas'); el.appendChild(canvas);
         requestAnimationFrame(()=>{
           const ctrl = SandWater(canvas, Math.min(worked, TARGET), compUsed, overtime);
@@ -393,12 +455,22 @@
     function computeTotal(){ const a=document.getElementById('startTime').value.trim(), b=document.getElementById('stopTime').value.trim(); if(!validTime(a)||!validTime(b)){ var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } return 0; }
       let work=parseHHMM(b)-parseHHMM(a); if(work<0) work+=24*60; let bt=0; breaksPane.querySelectorAll('.break-item').forEach(it=>{ const s=it.querySelector('.bi-start').value.trim(), e=it.querySelector('.bi-stop').value.trim(); if(validTime(s)&&validTime(e)){ let m=parseHHMM(e)-parseHHMM(s); if(m>0) bt+=m; }});
       const net=Math.max(0,work-bt); if (document.getElementById('computedTotal')) var __ct2=document.getElementById('computedTotal'); if(__ct2){ __ct2.textContent=fmtHM(net); } return net; }
-    function addBreakRow(i={name:'',start:'',stop:''}){ const row=document.createElement('div'); row.className='break-item'; row.style.display='grid'; row.style.gridTemplateColumns='1.2fr 1fr 1fr auto'; row.style.gap='6px'; row.style.marginBottom='6px'; row.innerHTML=`
-      <div><label>Name</label><input type="text" class="bi-name" value="${i.name||''}" placeholder="Lunch / Errand"></div>
-      <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
-      <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
-      <div style="align-self:end"><button class="btn small bi-del">Remove</button></div>`; breaksPane.appendChild(row);
-      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',computeTotal)); row.querySelector('.bi-del').addEventListener('click',()=>{row.remove();computeTotal();}); computeTotal(); }
+    function addBreakRow(i={name:'',start:'',stop:''}){
+      const row=document.createElement('div'); row.className='break-item';
+      row.innerHTML = `
+        <div class="bi-name-block">
+          <label>Name</label>
+          <input type="text" class="bi-name" value="${i.name||''}" placeholder="Name">
+        </div>
+        <div class="bi-times">
+          <div><label>Start</label><input type="time" class="bi-start" value="${i.start||''}"></div>
+          <div><label>Stop</label><input type="time" class="bi-stop" value="${i.stop||''}"></div>
+        </div>
+        <div><button class="btn small bi-remove">Remove break</button></div>`;
+      breaksPane.appendChild(row);
+      const onChange=()=>computeTotal();
+      row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onChange));
+      row.querySelector('.bi-remove').addEventListener('click',()=>{ row.remove(); computeTotal(); }); computeTotal(); }
     function clearLoggerFor(ds){ document.getElementById('startTime').value=''; document.getElementById('stopTime').value=''; breaksPane.innerHTML=''; var __ct=document.getElementById('computedTotal'); if(__ct){ __ct.textContent='0h 00m'; } const w=state.work[ds]; document.getElementById('holidayFlag').checked=!!(w&&w.holiday);
       if(w){ document.getElementById('startTime').value=w.start||''; document.getElementById('stopTime').value=w.stop||''; (w.breaks||[]).forEach(b=>addBreakRow(b)); computeTotal(); } }
     function renderLogger(){ const input=document.getElementById('logDate'); if(!input.value) input.value=toDateStr(new Date()); clearLoggerFor(input.value); }
@@ -419,11 +491,21 @@
       bubbleDate = ds;
       bubbleDateLbl.textContent = ds;
       const vw = window.innerWidth, vh = window.innerHeight;
-      const bw = Math.min(360, vw - 32), bh = 200;
-      bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = (vh/2 - bh/2) + 'px';
-      bubbleOptions.style.top = (vh/2 + bh/2 + 8) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-      bubbleDetails.style.top = (vh/2 + bh/2 + 8 + 110) + 'px';
+const bw = Math.min(360, vw - 32), bh = 200;
+bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
+function positionBubbleLayout(){
+  const topSafe = Math.max(70, (innerWidth<420?60:80));
+  bubble.style.left = (vw/2 - bw/2) + 'px';
+  bubble.style.top  = topSafe + 'px';
+  bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+  bubbleOptions.style.top = (topSafe + bh + 12) + 'px';
+  const optRect = bubbleOptions.getBoundingClientRect();
+  bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 24) + 'px';
+}
+positionBubbleLayout();
+requestAnimationFrame(positionBubbleLayout);
+setTimeout(positionBubbleLayout, 100);
+window.addEventListener('resize', positionBubbleLayout, { once: true });
 
       const wObj = state.work[ds]||{};
       document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
@@ -431,6 +513,7 @@
       document.getElementById('dCompUsed').textContent= fmtHM(compUsed);
       document.getElementById('dOver').textContent  = fmtHM(Math.max(0,overtime));
 
+      const bhEl = document.getElementById('bubbleHoliday'); if (bhEl) bhEl.classList.toggle('show', !!isHoliday(ds));
       focusLayer.classList.add('active');
       if(navigator.vibrate){ navigator.vibrate(10); }
 
