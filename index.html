@@ -260,7 +260,7 @@ html, body { overflow-x: hidden; }
 
     // Constants & state
     const TARGET=504, KEY='hourlogger.42';
-    const state=JSON.parse(localStorage.getItem(KEY)||'{}'); state.work = state.work || {}; state.comp = state.comp || {};
+    const state=JSON.parse(localStorage.getItem(KEY)||'{}'); if(!state.work) state.work={}; if(!state.comp) state.comp={};
     const save=()=>localStorage.setItem(KEY, JSON.stringify(state));
     const pad=n=>String(n).padStart(2,'0');
     const toDateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -441,18 +441,56 @@ html, body { overflow-x: hidden; }
       bubbleDate = ds;
       bubbleDateLbl.textContent = ds;
       const vw = window.innerWidth, vh = window.innerHeight;
-const bw = Math.min(360, vw - 32), bh = 200;
-bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
-function positionBubbleLayout(){
-  const topSafe = Math.max(70, (innerWidth<420?60:80));
-  bubble.style.left = (vw/2 - bw/2) + 'px';
-  bubble.style.top  = topSafe + 'px';
-  bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
-  bubbleOptions.style.top = (topSafe + bh + 12) + 'px';
-  const optRect = bubbleOptions.getBoundingClientRect();
-  bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 24) + 'px';
-}
-function listenForWaiting(swReg){
+      const bw = Math.min(360, vw - 32), bh = 200;
+      bubble.style.width = bw + 'px'; bubble.style.height = bh + 'px';
+      const topSafe = Math.max(70, (innerWidth<420?60:80));
+      bubble.style.left = (vw/2 - bw/2) + 'px'; bubble.style.top  = topSafe + 'px';
+      bubbleOptions.style.top = (topSafe + bh + 12) + 'px'; bubbleOptions.style.left = '16px'; bubbleOptions.style.right = '16px';
+      const optRect = bubbleOptions.getBoundingClientRect(); bubbleDetails.style.top = (parseFloat(bubbleOptions.style.top) + (optRect.height||110) + 12) + 'px';
+
+      const wObj = state.work[ds]||{};
+      document.getElementById('dBreaks').textContent= (wObj.breaks||[]).map(b=>`${b.name||'Break'} ${b.start}-${b.stop}`).join(', ') || '—';
+      document.getElementById('dWorked').textContent= fmtHM(worked);
+      document.getElementById('dCompUsed').textContent= fmtHM(compUsed);
+      document.getElementById('dOver').textContent  = fmtHM(Math.max(0,overtime));
+
+      const bhEl = document.getElementById('bubbleHoliday'); if (bhEl) bhEl.classList.toggle('show', !!isHoliday(ds));
+      focusLayer.classList.add('active');
+      if(navigator.vibrate){ navigator.vibrate(10); }
+
+      if(bubbleCtrl) bubbleCtrl.cancel();
+      requestAnimationFrame(()=>{
+        bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
+      });
+    }
+    document.getElementById('focusBackdrop').addEventListener('click',()=>{ focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); });
+    document.getElementById('optEditLog').addEventListener('click',()=>{ if(bubbleDate){ document.getElementById('logDate').value=bubbleDate; renderLogger(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel(); show('logger'); } });
+    document.getElementById('optFillMissing').addEventListener('click',()=>{
+      if(!bubbleDate) return;
+      const ds=bubbleDate;
+      const need = Math.max(0, 504 - workMins(ds));
+      const current = compMins(ds);
+      const next = (current === need) ? 0 : need;
+      if(next>0){ state.comp[ds] = { mins: next, note: 'auto-fill' }; } else { delete state.comp[ds]; }
+      save(); renderMenu(); renderWeek(); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
+      const worked = workMins(ds), compUsed = compMins(ds), overtime = Math.max(0, worked-504);
+      if(bubbleCtrl) bubbleCtrl.cancel();
+      requestAnimationFrame(()=>{
+        bubbleCtrl = SandWater(bubbleCanvas, Math.min(worked,504), compUsed, Math.max(0,overtime));
+      });
+      document.getElementById('dCompUsed').textContent=fmtHM(compUsed); toast(next>0 ? 'Filled missing time' : 'Compensation cleared');
+    });
+    document.getElementById('optResetDay').addEventListener('click',()=>{
+      if(!bubbleDate) return;
+      const ds=bubbleDate; if(state.work[ds]) delete state.work[ds]; if(state.comp[ds]) delete state.comp[ds]; save(); renderMenu(); renderWeek(); focusLayer.classList.remove('active'); if(bubbleCtrl) bubbleCtrl.cancel();
+    });
+
+    // Service worker with "New version available — Refresh"
+    const updateBanner = document.getElementById('updateBanner');
+    const btnRefresh = document.getElementById('btnRefresh');
+    if('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js').then(reg=>{
+        function listenForWaiting(swReg){
           if(swReg.waiting){ updateBanner.classList.add('show'); }
           swReg.addEventListener('updatefound',()=>{
             const newWorker = swReg.installing;
@@ -500,7 +538,7 @@ function listenForWaiting(swReg){
             stop: it.querySelector('.bi-stop')?.value.trim()||''
           }));
           const holiday = byId('holidayFlag').checked;
-          try { state.work = state.work || {}; } catch(e){ window.state = window.state || {}; state.work = state.work || {}; }
+          try { if(!state.work) state.work={}; } catch(e){ window.state = window.state || {}; state.work = state.work || {}; }
           state.work[ds] = { start:a, stop:b, breaks, netMins: net, holiday };
           save();
           if (typeof renderMenu==='function') renderMenu();
